@@ -15,6 +15,7 @@ Each program has one start circle. This is the "entry point" of the program, or 
 ![A normal circle.](../images/normal-circle.png?raw=true)
 <br />
 *A normal circle.*
+
 Each program can have unboundedly many normal circles. They can hold signed integer values, which can vary over the course of a program. Normal circles are connected to each other, and to start circles, by lines (*paths*); a program can have unlimited amounts of these paths.
 
 # 2 Types of paths
@@ -23,10 +24,19 @@ Each program can have unboundedly many normal circles. They can hold signed inte
 ![A normal path.](../images/normal-path.png?raw=true)
 <br />
 *A normal path.*
+
 Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown.
 
 # 2.2 Priority paths
 ![A priority path.](../images/priority-path.png?raw=true)
 <br />
 *A priority path.*
+
 Priority paths are almost exactly like normal paths, but with one difference: the take precedence over normal paths. For example, if a program's start circle has both a normal path and a priority path connected to it, instead of an error being thrown, the priority path will be chosen over the normal path; however, if there are ever two or more possible priority paths that can be taken from a single circle, an error will be thrown.
+
+# 1.3 Conditional priority paths
+![A conditional circle.](../images/conditional-priority-path.png?raw=true)
+<br />
+*A conditional priority path.*
+
+Conditional priority paths are the same as priority paths, except that if the value of the circle which led the program to this path is zero or less, the path will be ignored.
