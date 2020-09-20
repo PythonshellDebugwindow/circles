@@ -1,0 +1,1 @@
+This directory houses the documentation for the Circles programming language. For the best effect, read the included files in sequential order (e.g., starting with the top file); if you don't, this documentation won't make any sense at all.
