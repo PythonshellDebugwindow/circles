@@ -18,6 +18,13 @@ Each program has one start circle. This is the "entry point" of the program, or 
 
 Each program can have unboundedly many normal circles. They can hold signed integer values, which can vary over the course of a program. Normal circles are connected to each other, and to start circles, by lines (*paths*); a program can have unlimited amounts of these paths.
 
+# 1.3 Incrementation circles
+![An implementation circle.](../images/incrementation-circle.png?raw=true)
+<br />
+*An incrementation circle.*
+
+Incrementation circles act just like normal circles, except that the next normal circle reached by the program will have its value incremented. If, at any time during program execution, the program is at an incrementation circle and there are no normal circles directly reachable from the incrementation circle (without going backwards, of course, as that is illegal), an error is thrown.
+
 # 2 Types of paths
 
 # 2.1 Normal paths
