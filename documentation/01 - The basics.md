@@ -39,7 +39,7 @@ Decrementation circles are no different from incrementation circles, except for 
 <br />
 *A normal path.*
 
-Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown.
+Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown. Like all paths, normal paths can be bent or even circular (although the start must not touch the end); paths can also cross.
 
 # 2.2 Priority paths
 ![A priority path.](../images/priority-path.png?raw=true)
