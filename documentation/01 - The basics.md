@@ -53,4 +53,4 @@ Priority paths are almost exactly like normal paths, but with one difference: th
 <br />
 *A conditional priority path.*
 
-Conditional priority paths are the same as priority paths, except that if the value of the circle which led the program to this path is zero or less, the path will be ignored.
+Conditional priority paths are the same as priority paths, except that if the value of the circle which led the program to this path is zero or less, the path will be ignored, and if the value of said circle is positive, the path will be taken no matter what. Ambiguity in these paths still raises an error, but only if the aforementioned circle's value is positive, as the paths would be ignored otherwise.
