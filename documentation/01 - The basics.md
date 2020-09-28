@@ -23,7 +23,7 @@ Each program can have unboundedly many normal circles. They can hold signed inte
 <br />
 *An incrementation circle.*
 
-Incrementation circles act just like normal circles, except that the next normal circle reached by the program will have its value incremented. If, at any time during program execution, the program is at an incrementation circle and there are no normal circles directly reachable from the incrementation circle (without going backwards, of course, as that is illegal), an error is thrown.
+Incrementation circles act just like normal circles, except that the next normal circle reached by the program will have its value incremented. If, at any time during program execution, the program is at an incrementation circle and there are no normal circles directly reachable from the incrementation circle (without going backwards, of course, as that is illegal), an error is thrown. Incrementation circles can be *stacked*: if the program visits N incrementation circles in a row, then visits a normal circle, then the normal circle's value will be incremented by N.
 
 ### 1.4 Decrementation circles
 ![An decrementation circle.](../images/decrementation-circle.png?raw=true)
@@ -39,7 +39,7 @@ Decrementation circles are no different from incrementation circles, except for 
 <br />
 *A normal path.*
 
-Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown. Like all paths, normal paths can be bent or even circular (although the start must not touch the end); paths can also cross.
+Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown. Like all paths, normal paths cannot be bent; paths can also cross.
 
 ### 2.2 Priority paths
 ![A priority path.](../images/priority-path.png?raw=true)
