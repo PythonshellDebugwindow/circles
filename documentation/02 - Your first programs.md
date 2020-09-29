@@ -29,3 +29,6 @@ The program depicted above implements a "while loop". First, the program increme
 ![A program that outputs the number one](../images/program-6.png?raw=true)
 
 The program shown above outputs the number one. It first increments the value of the circle in the exact center of the program, which we'll call C here for ease of reference. The program then take the conditional priority path to the down-right into the output circle, writing C's value, which is currently 1, to standard output. C's value is then decremented, and the priority path is taken to the leftmost normal circle; C's value is now zero, so the conditional priority path is ignored. Since the leftmost normal circle is a dead end, having no other paths leading away from it, the program terminates.
+
+## 7 Writing your own programs
+I used [https://scratch.mit.edu/](Scratch) to make the programs in this file. The specific project I used was (https://scratch.mit.edu/projects/429742899/](this one); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
