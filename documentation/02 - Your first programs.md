@@ -24,3 +24,8 @@ The program pictured here utilises an incrementation circle. It starts in the st
 ![A while loop](../images/program-5.png?raw=true)
 
 The program depicted above implements a "while loop". First, the program increments the circle on the left side of the longest path; let's call that circle C. Then, since C's value is three, which is, of course, greater than zero, the conditional priority path is taken and C's value is decremented. This repeats twice; after the third time, C's value is zero, and so the conditional priority path is ignored and the priority path is taken; since there no other paths leading out of the circle which the priority path leads to, the program halts. The southernmost two circles can be thought of as the "body" of the while loop, and the conditional priority path as the condition (altohugh this means that the condition must always be `x > 0` where `x` is C's value.
+
+## 6 A program that outputs the number one
+![A program that outputs the number one](../images/program-6.png?raw=true)
+
+The program shown above outputs the number one. It first increments the value of the circle in the exact center of the program, which we'll call C here for ease of reference. The program then take the conditional priority path to the down-right into the output circle, writing C's value, which is currently 1, to standard output. C's value is then decremented, and the priority path is taken to the leftmost normal circle; C's value is now zero, so the conditional priority path is ignored. Since the leftmost normal circle is a dead end, having no other paths leading away from it, the program terminates.
