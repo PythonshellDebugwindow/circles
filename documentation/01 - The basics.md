@@ -9,7 +9,7 @@ There are two types of circles in Circles: *normal circles* and *start circles*.
 <br />
 *A start circle.*
 
-Each program has one start circle. This is the "entry point" of the program, or where the program starts execution. If this circle is ever reentered, the program is terminated.
+Each program has one start circle. This is the "entry point" of the program, or where the program starts execution. If this circle is ever reentered, the program is terminated. Like all circles, start circles can be any size.
 
 ### 1.2 Normal circles
 ![A normal circle.](../images/normal-circle.png?raw=true)
