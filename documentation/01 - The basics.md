@@ -32,6 +32,13 @@ Incrementation circles act just like normal circles, except that the next normal
 
 Decrementation circles are no different from incrementation circles, except for the obvious: they decrement the value of the next normal circle reached instead of incrementing it.
 
+### 1.5 Output circles
+![An output circle.](../images/output-circle.png?raw=true)
+<br />
+*An output circle.*
+
+Output circles are the same as normal circles, except they output the value of the most recently visited normal circle. If no normal circles have yet been visited, an error is thrown.
+
 ## 2 Types of paths
 
 ### 2.1 Normal paths
