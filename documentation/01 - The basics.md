@@ -61,3 +61,10 @@ Priority paths are almost exactly like normal paths, but with one difference: th
 *A conditional priority path.*
 
 Conditional priority paths are the same as priority paths, except that if the value of the circle which led the program to this path is zero or less, the path will be ignored, and if the value of said circle is positive, the path will be taken no matter what. Ambiguity in these paths still raises an error, but only if the aforementioned circle's value is positive, as the paths would be ignored otherwise.
+
+### 2.4 Input paths
+!![An input path.](../images/input-path.png?raw=true)
+<br />
+*An input path.*
+
+Input paths work like normal paths, but the next normal circle encountered by the program will get its value from standard input (an integer value is required). If no normal circles are later encountered by the program, an error is thrown. If an input path is followed by a non-normal circle and then another input path, the second input path will be treated as if it were a normal path.
