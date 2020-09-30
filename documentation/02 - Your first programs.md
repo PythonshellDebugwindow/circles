@@ -30,5 +30,10 @@ The program depicted above implements a "while loop". First, the program increme
 
 The program shown above outputs the number one. It first increments the value of the circle in the exact center of the program, which we'll call C here for ease of reference. The program then take the conditional priority path to the down-right into the output circle, writing C's value, which is currently 1, to standard output. C's value is then decremented, and the priority path is taken to the leftmost normal circle; C's value is now zero, so the conditional priority path is ignored. Since the leftmost normal circle is a dead end, having no other paths leading away from it, the program terminates.
 
-## 7 Writing your own programs
-I used [https://scratch.mit.edu/](Scratch) to make the programs in this file. The specific project I used was (https://scratch.mit.edu/projects/429742899/](this one); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
+## 7 A [truth-machine](https://www.esolangs.org/wiki/Truth-machine)
+![A truth-machine](../images/program-7.png?raw=true)
+
+The program shown above is a truth-machine: it halts if you input the number zero, or loops forever if you input the number one; all other input is undefined behaviour and should not be used. THe program starts in the start circle, reads an integer from standard input, and stores that integer in the top-central circle, which we'll call C here for the sake of brevity. If C's value is non-zero (e.g., if the user input the number one (or input more than one, which **you shouldn't do**, as this is undefined behaviour)), then the program will take the conditional priority path to the down-right, then go left, then up-right, and then repeat that loop forever; if C's value is zero (e.g., if the user input the number zero (or input less than zero, which **you shouldn't do**, as this is undefined behaviour)), then the program will go to the right and halt.
+
+## 8 Writing your own programs
+I used [Scratch](https://scratch.mit.edu/) to make the programs in this file. The specific project I used was [this one](https://scratch.mit.edu/projects/429742899/); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
