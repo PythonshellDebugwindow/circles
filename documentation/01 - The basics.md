@@ -63,7 +63,7 @@ Priority paths are almost exactly like normal paths, but with one difference: th
 Conditional priority paths are the same as priority paths, except that if the value of the circle which led the program to this path is zero or less, the path will be ignored, and if the value of said circle is positive, the path will be taken no matter what. Ambiguity in these paths still raises an error, but only if the aforementioned circle's value is positive, as the paths would be ignored otherwise.
 
 ### 2.4 Input paths
-!![An input path.](../images/input-path.png?raw=true)
+![An input path.](../images/input-path.png?raw=true)
 <br />
 *An input path.*
 
