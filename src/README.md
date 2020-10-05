@@ -1,3 +1,9 @@
 ~~Not a~~ Almost no chance.
 
 Currently "trying" to make an interpreter on my computer.
+
+# Implementation and the Circles Standard Scale
+In order to make an interpreter (or compiler) for Circless, I have realized that some sort of standard is in order. This is the Circles Standard Scale (CSS).
+
+## The standard
+The standard states that Circles programs must have 20px of non-white margin on all sides.
