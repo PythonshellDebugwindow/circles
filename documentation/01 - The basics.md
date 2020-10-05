@@ -2,7 +2,7 @@
 Circles is an esoteric programming language, meaning it's a programming language that was created not in seriousness, but just for fun. Unlike more traditional languages, whose programs are text files, Circles programs are image files. This is because a program in Circles looks like a maze of nested circles, connected by parallel lines which themselves can contain circles. Circles programs should only contain black (RGB 0,0,0) and white (RGB 255,255,255), and any other colours are treated as white; white is the "background" of the program, and black is the colour of the circles and paths, but black must **not** be elsewhere in the program, for if it is, [demons may well fly out of your nose](http://www.catb.org/jargon/html/N/nasal-demons.html).
 
 ## 1 Types of circles
-There are two types of circles in Circles: *normal circles* and *start circles*. There is one start circle, and an unlimited amount of normal circles, in each program.
+There are two types of circles in Circles: *normal circles* and *start circles*. There is one start circle, and an unlimited amount of other types of circles, in each program.
 
 ### 1.1 Start circles
 ![A start circle.](../images/start-circle.png?raw=true)
