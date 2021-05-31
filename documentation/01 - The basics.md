@@ -53,7 +53,7 @@ Normal paths are the most basic types of paths: they are used exclusively to con
 <br />
 *A priority path.*
 
-Priority paths are almost exactly like normal paths, but with one difference: the take precedence over normal paths. For example, if a program's start circle has both a normal path and a priority path connected to it, instead of an error being thrown, the priority path will be chosen over the normal path; however, if there are ever two or more possible priority paths that can be taken from a single circle, an error will be thrown.
+Priority paths are almost exactly like normal paths, but with one difference: they take precedence over normal paths. For example, if a program's start circle has both a normal path and a priority path connected to it, instead of an error being thrown, the priority path will be chosen over the normal path; however, if there are ever two or more possible priority paths that can be taken from a single circle, an error will be thrown.
 
 ### 2.3 Conditional priority paths
 ![A conditional priority path.](../images/conditional-priority-path.png?raw=true)
