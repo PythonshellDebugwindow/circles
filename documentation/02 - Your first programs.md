@@ -3,7 +3,7 @@
 ## 1 A basic program
 ![A basic program](../images/program-1.png?raw=true)
 
-The above program is very simple indeed: it starts in the start circle (top left), crosses the normal path, and ends up in the normal circle (bottom right); since there is nowhere to from the normal circle without traversing the path which led to the circle (which is illegal in Circles), the program halts. This program is basically just a fancy nop, but demonstrates some basic features of the language, such as circles and normal paths.
+The above program is very simple indeed: it starts in the start circle (top left), crosses the normal path, and ends up in the normal circle (bottom right); since there is nowhere to go from the normal circle without traversing the path which led to the circle (which is illegal), the program halts. This program is basically just a fancy nop, but demonstrates some basic features of the language, such as circles and normal paths.
 
 ## 2 Another basic program
 ![Another basic program](../images/program-2.png?raw=true)
@@ -23,7 +23,7 @@ The program pictured here utilises an incrementation circle. It starts in the st
 ## 5 A while loop
 ![A while loop](../images/program-5.png?raw=true)
 
-The program depicted above implements a "while loop". First, the program increments the circle on the left side of the longest path; let's call that circle C. Then, since C's value is three, which is, of course, greater than zero, the conditional priority path is taken and C's value is decremented. This repeats twice; after the third time, C's value is zero, and so the conditional priority path is ignored and the priority path is taken; since there no other paths leading out of the circle which the priority path leads to, the program halts. The southernmost two circles can be thought of as the "body" of the while loop, and the conditional priority path as the condition (altohugh this means that the condition must always be `x > 0` where `x` is C's value.
+The program depicted above implements a while loop. First, the program increments the circle on the left side of the longest path; let's call that circle C. Then, since C's value is three, which is, of course, greater than zero, the conditional priority path is taken and C's value is decremented. This repeats twice; after the third time, C's value is zero, and so the conditional priority path is ignored and the priority path is taken; since there no other paths leading out of the circle which the priority path leads to, the program halts. The southernmost two circles can be thought of as the "body" of the while loop, and the conditional priority path as the condition (although this means that the condition must always be `x > 0` where `x` is C's value).
 
 ## 6 A program that outputs the number one
 ![A program that outputs the number one](../images/program-6.png?raw=true)
@@ -33,7 +33,7 @@ The program shown above outputs the number one. It first increments the value of
 ## 7 A [truth-machine](https://www.esolangs.org/wiki/Truth-machine)
 ![A truth-machine](../images/program-7.png?raw=true)
 
-The program shown above is a truth-machine: it halts if you input the number zero, or loops forever if you input the number one; all other input is undefined behaviour and should not be used. THe program starts in the start circle, reads an integer from standard input, and stores that integer in the top-central circle, which we'll call C here for the sake of brevity. If C's value is non-zero (e.g., if the user input the number one (or input more than one, which **you shouldn't do**, as this is undefined behaviour)), then the program will take the conditional priority path to the down-right, then go left, then up-right, and then repeat that loop forever; if C's value is zero (e.g., if the user input the number zero (or input less than zero, which **you shouldn't do**, as this is undefined behaviour)), then the program will go to the right and halt.
+The program shown above is a truth-machine: it halts if you input the number zero, or loops forever if you input the number one; all other input is undefined behaviour and should not be used. The program starts in the start circle, reads an integer from standard input, and stores that integer in the top-central circle, which we'll call C here for the sake of brevity. If C's value is non-zero (e.g., if the user input the number one), then the program will take the conditional priority path to the down-right, then go left, then up-right, and then repeat that loop forever; if C's value is zero (e.g., if the user input the number zero), then the program will go to the right and halt.
 
 ## 8 Writing your own programs
 I used [Scratch](https://scratch.mit.edu/) to make the programs in this file. The specific project I used was [this one](https://scratch.mit.edu/projects/429742899/); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
