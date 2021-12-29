@@ -1,5 +1,5 @@
-# circles
-Documentation for the Circles esoteric programming language. Its [page on esolangs.org](https://www.esolangs.org/wiki/Circles) is minimal; all documentation is in this repo.
+# Circles!
 
-# Documentation
-Documentation is in the Documentation folder. For the best effect, read the docs in sequential order.
+This is a work-in-progress implementation of Circles which is a yet to be implemented graphical esolang created by [PythonshellDebugwindow](https://github.com/PythonshellDebugwindow).
+
+I think this is a nice esolang so I'm gonna implement this.
