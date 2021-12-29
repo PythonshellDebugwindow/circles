@@ -6,24 +6,27 @@ import numpy as np
 def get_program(number:int):
     return f"images\program-{number}.png"
 
-def get_circles(img, debug):
-        circles = cv2.HoughCircles(
-            image=img,
-            method=cv2.HOUGH_GRADIENT,
-            dp=1,
-            minDist=50,
-            param1=300,
-            param2=53,
-            maxRadius=0,
-        )
+def get_circles(img, debug, max_radius = None):
+    if max_radius is None:
+        max_radius = np.min(img.shape)
 
-        if circles is not None:
-            for c in circles[0]:
-                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (0, 0, 255), 1)
-                cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
-                pass
+    circles = cv2.HoughCircles(
+        image=img,
+        method=cv2.HOUGH_GRADIENT,
+        dp=1,
+        minDist=50,
+        param1=300,
+        param2=55,
+        maxRadius=max_radius,
+    )
 
-        return circles
+    if circles is not None:
+        for c in circles[0]:
+            cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (0, 0, 255), 3)
+            cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
+            pass
+
+    return circles
 
 def get_lines(img, debug):
     edges = cv2.Canny(img,50,150,apertureSize = 3)
@@ -48,19 +51,29 @@ def morph_func(img, func, kernel_size=2):
     kernel = np.ones((kernel_size,kernel_size),np.uint8)
     return func(img, kernel)
 
-image = cv2.imread(get_program(2))
+image = cv2.imread(get_program(5))
 
 gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
 gray = cv2.bitwise_not(gray)
 gray = morph_func(gray, cv2.dilate)
 
-debug_out = image.copy()
-# debug_out = cv2.bitwise_not(debug_out)
-# debug_out = morph(debug_out, kernel_size=2, morph=cv2.MORPH_GRADIENT)
+debug_out = cv2.bitwise_not(image).copy()
 
-get_circles(gray, debug_out)
+circles = get_circles(gray, debug_out)
 
-# get_lines(gray, debug_out)
+
+max_rad = np.max(circles[:,:,2][0])
+
+i=0
+while circles is not None:
+    i+=1
+    circles =get_circles(gray, debug_out, int(max_rad-1))
+
+    if circles is None:
+        break
+    max_rad = np.max(circles[:,:,2][0])
+print(max_rad)
+print(i)
 
 cv2.imshow("display", debug_out)
 k=cv2.waitKey(0)
