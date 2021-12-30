@@ -157,7 +157,7 @@ while True:
 
         holes = mask_contours(hole_contours, invert_gray)
         
-        not_c = cv2.bitwise_and(cv2.bitwise_not(c), holes)
+        not_c = cv2.bitwise_and(cv2.bitwise_not(c), invert_gray)
 
         dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*3))
 
@@ -167,7 +167,9 @@ while True:
 
         dilate_and_holes = cv2.bitwise_and(not_c, dilated)
 
-        grad_or_dil = cv2.bitwise_or(dilate_and_holes, gradient_moprh)
+        dil_erode_grad =morph( morph_func(dilate_and_holes, cv2.erode, 4), 2, cv2.MORPH_GRADIENT)
+
+        grad_or_dil = cv2.bitwise_or(dil_erode_grad, gradient_moprh)
 
         cv2.imshow("display", grad_or_dil)
         
