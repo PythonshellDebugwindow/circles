@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import cv2
 import numpy as np
+from numpy.core.numeric import _outer_dispatcher
 
 def get_program(number:int):
     return f"images\program-{number}.png"
@@ -51,29 +52,42 @@ def morph_func(img, func, kernel_size=2):
     kernel = np.ones((kernel_size,kernel_size),np.uint8)
     return func(img, kernel)
 
+def mask_contour(cnt, img):
+    cnt_list = []
+
+    for p in cnt:
+        cnt_list.append([p[0][0], p[0][1]])
+
+    cnt_list = np.array(cnt_list)
+
+    cnt_list = cnt_list - cnt_list.min(axis=0)
+    mask = np.zeros(img.shape, np.uint8)
+    cv2.drawContours(mask, [cnt_list], -1, (255, 255, 255), -1, cv2.LINE_AA)
+    return mask
+
 image = cv2.imread(get_program(5))
 
 gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
 gray = cv2.bitwise_not(gray)
 gray = morph_func(gray, cv2.dilate)
 
-debug_out = cv2.bitwise_not(image).copy()
+
+debug_out = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
 circles = get_circles(gray, debug_out)
 
+contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+outer_contour_mask = mask_contour(contours[0], gray)
 
-max_rad = np.max(circles[:,:,2][0])
+gray_distance_transform = cv2.distanceTransform(gray, cv2.DIST_L2, 5)
+max_stroke_width = np.max(gray_distance_transform)
 
-i=0
-while circles is not None:
-    i+=1
-    circles =get_circles(gray, debug_out, int(max_rad-1))
+outer_distance_transform = cv2.distanceTransform(outer_contour_mask, cv2.DIST_L2, 5)
+line_width = np.unique(outer_distance_transform)
 
-    if circles is None:
-        break
-    max_rad = np.max(circles[:,:,2][0])
-print(max_rad)
-print(i)
+tophat = morph(gray, kernel_size=9, morph=cv2.MORPH_TOPHAT)
 
-cv2.imshow("display", debug_out)
+print(line_width)
+
+cv2.imshow("display", tophat)
 k=cv2.waitKey(0)
