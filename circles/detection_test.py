@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import cv2
 import numpy as np
-from numpy.core.numeric import _outer_dispatcher
+
 
 def get_program(number:int):
     return f"images\program-{number}.png"
@@ -76,18 +76,22 @@ debug_out = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
 circles = get_circles(gray, debug_out)
 
-contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-outer_contour_mask = mask_contour(contours[0], gray)
+outer_contours, _ = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+outer_contour_mask = mask_contour(outer_contours[0], gray)
 
 gray_distance_transform = cv2.distanceTransform(gray, cv2.DIST_L2, 5)
-max_stroke_width = np.max(gray_distance_transform)
+half_stroke_width = np.max(gray_distance_transform)
 
 outer_distance_transform = cv2.distanceTransform(outer_contour_mask, cv2.DIST_L2, 5)
 line_width = np.unique(outer_distance_transform)
 
-tophat = morph(gray, kernel_size=9, morph=cv2.MORPH_TOPHAT)
+invert_gray = cv2.bitwise_not(gray)
 
-print(line_width)
+area_contours, hierarchy = cv2.findContours(invert_gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-cv2.imshow("display", tophat)
+
+
+print(half_stroke_width)
+
+cv2.imshow("display", invert_gray)
 k=cv2.waitKey(0)
