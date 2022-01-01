@@ -10,7 +10,7 @@ from collections import defaultdict
 def get_program(number:int):
     return f"images\program-{number}.png"
 
-def get_circles(img, debug, max_radius = None, param2=50):
+def get_circles(img, debug, min_dist=50,max_radius = None, param2=50):
     if max_radius is None:
         max_radius = np.min(img.shape)
 
@@ -18,7 +18,7 @@ def get_circles(img, debug, max_radius = None, param2=50):
         image=img,
         method=cv2.HOUGH_GRADIENT,
         dp=1,
-        minDist=50,
+        minDist=min_dist,
         param1=300,
         param2=param2,
         maxRadius=max_radius,
@@ -62,14 +62,19 @@ def mask_contours(cnts, img):
 
 def get_contour_centroid(cnt):
     M = cv2.moments(cnt)
+    if M['m00'] ==0:
+        return (0,0)
     return (int(M['m10']/M['m00']),int(M['m01']/M['m00']))
 
-image = cv2.imread(get_program(5))
+MAX_PROGRAM = 7
+MIN_PROGRAM = 1
+program = 5
+
+image = cv2.imread(get_program(program))
 
 gray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
 gray = cv2.bitwise_not(gray)
 gray = morph_func(gray, cv2.dilate)
-
 
 debug_out = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
@@ -150,10 +155,10 @@ rect_kdtree = KDTree(rects)
 
 connections = defaultdict(list)
 
+holes = mask_contours(hole_contours, invert_gray)
 for i, contour in enumerate(fill_contours):
     c = mask_contours([fill_contours[i]], invert_gray)
 
-    holes = mask_contours(hole_contours, invert_gray)
     
     not_c = cv2.bitwise_and(cv2.bitwise_not(c), invert_gray)
 
@@ -212,55 +217,27 @@ while True:
             index+=1
         elif chr(k)==',':
             index-=1
+        elif chr(k)=='[':
+            program-=1
+        elif chr(k)==']':
+            program+=1
         else:
             index=int(chr(k))
-        index%=len(area_contours)
-
-        c = mask_contours([area_contours[index]], invert_gray)
-
-        holes = mask_contours(hole_contours, invert_gray)
+        program=np.clip(program, MIN_PROGRAM,MAX_PROGRAM)
+        image = cv2.imread(get_program(program))
         
-        not_c = cv2.bitwise_and(cv2.bitwise_not(c), invert_gray)
+        index%=len(fill_contours)
 
-        dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*4))
+        gray_blur = cv2.blur(invert_gray, (int(half_stroke_width),int(half_stroke_width)))
 
-        # index%=len(hierarchy)
-        # print((tuple(hierarchy[index]),)
+        show = image.copy()
+        get_circles(gray_blur, show, min_dist=int(half_stroke_width), param2=65)
+        from_cnt = fill_contours[index]
 
-        dilate_and_holes = cv2.bitwise_and(not_c, dilated)
+        for to_i in connections[index]:
+            to_cnt = fill_contours[to_i]
 
-        dil_erode = morph_func(dilate_and_holes, cv2.erode, 2)
-
-        dil_erode_grad =morph( dil_erode, 2, cv2.MORPH_GRADIENT)
-
-        grad_or_dil = cv2.bitwise_or(dil_erode_grad, gradient_moprh)
-
-        # coords = tuple(zip(*np.where(dil_erode_grad>0)))
-
-        filled_in = gradient_moprh.copy()
-
-        # for coord in coords:
-        #     cv2.floodFill(filled_in, None, (coord[1], coord[0]), 255)
-
-        connected_contour_intersects, _ = cv2.findContours(dil_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        for cci in connected_contour_intersects:
-            cv2.floodFill(filled_in, None, (cci[0][0][0], cci[0][0][1]), 255)
-
-        just_filled = filled_in-gradient_moprh
-        just_filled_erode = morph_func(just_filled, cv2.erode, 2)
-
-        connected_contours, _ = cv2.findContours(just_filled_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
-        c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
-
-        show = cv2.cvtColor(just_filled_erode, cv2.COLOR_GRAY2BGR)
-        for r in c_rects:
-            q = rect_kdtree.query(r)
-            if q[0]<20:
-                print(q)
-                cv2.drawContours(show, [fill_contours[q[1]]], -1, (0, 255, 0, ), 2, cv2.LINE_4)
-        print("---")
+            cv2.line(show, get_contour_centroid(from_cnt), get_contour_centroid(to_cnt), (255,0,0), thickness=2)
 
         cv2.imshow("display", show)
         
