@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 import cv2
 import numpy as np
+from scipy.spatial import KDTree
 from collections import defaultdict
 
 
@@ -58,6 +59,10 @@ def mask_contours(cnts, img):
     mask = np.zeros(img.shape, np.uint8)
     cv2.drawContours(mask, cnts, -1, (255, 255, 255), -1, cv2.LINE_AA)
     return mask
+
+def get_contour_centroid(cnt):
+    M = cv2.moments(cnt)
+    return (int(M['m10']/M['m00']),int(M['m01']/M['m00']))
 
 image = cv2.imread(get_program(5))
 
@@ -130,13 +135,71 @@ print(hierarchy)
 
 print(half_stroke_width)
 
-cv2.imshow("display", invert_gray)
-
 hole_contour_indices = [n for l in list(hierarchy.values())[2:] for n in l]
 hole_contours = np_area_contours[(hole_contour_indices,)]
 
+print(list(hierarchy.values())[2:]+list(hierarchy.values())[0])
+fill_contour_indices = [n for l in list(hierarchy.values())[:1]+list(hierarchy.values())[2:] for n in l]
+fill_contours = np_area_contours[(fill_contour_indices,)]
+
 gradient_moprh = morph(invert_gray, 2, cv2.MORPH_GRADIENT)
 
+rects = [cv2.boundingRect(c) for c in fill_contours]
+print(rects)
+rect_kdtree = KDTree(rects)
+
+connections = defaultdict(list)
+
+for i, contour in enumerate(fill_contours):
+    c = mask_contours([fill_contours[i]], invert_gray)
+
+    holes = mask_contours(hole_contours, invert_gray)
+    
+    not_c = cv2.bitwise_and(cv2.bitwise_not(c), invert_gray)
+
+    dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*4))
+
+    dilate_and_holes = cv2.bitwise_and(not_c, dilated)
+
+    dil_erode = morph_func(dilate_and_holes, cv2.erode, 2)
+
+    dil_erode_grad =morph( dil_erode, 2, cv2.MORPH_GRADIENT)
+
+    grad_or_dil = cv2.bitwise_or(dil_erode_grad, gradient_moprh)
+
+    filled_in = gradient_moprh.copy()
+
+    connected_contour_intersects, _ = cv2.findContours(dil_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    for cci in connected_contour_intersects:
+        cv2.floodFill(filled_in, None, (cci[0][0][0], cci[0][0][1]), 255)
+
+    just_filled = filled_in-gradient_moprh
+    just_filled_erode = morph_func(just_filled, cv2.erode, 2)
+
+    connected_contours, _ = cv2.findContours(just_filled_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
+
+    show = cv2.cvtColor(just_filled_erode, cv2.COLOR_GRAY2BGR)
+    for r in c_rects:
+        q = rect_kdtree.query(r)
+        if q[0]<20:
+            connections[i]+=[q[1]]
+
+print(connections)
+
+show_connections = image.copy()
+
+for from_i in connections.keys():
+    from_cnt = fill_contours[from_i]
+
+    for to_i in connections[from_i]:
+        to_cnt = fill_contours[to_i]
+
+        cv2.line(show_connections, get_contour_centroid(from_cnt), get_contour_centroid(to_cnt), (255,0,0))
+
+cv2.imshow("display", show_connections)
 index=0
 while True:
     k=cv2.waitKey(0)
@@ -162,14 +225,42 @@ while True:
         dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*4))
 
         # index%=len(hierarchy)
-        # print((tuple(hierarchy[index]),))
-
+        # print((tuple(hierarchy[index]),)
 
         dilate_and_holes = cv2.bitwise_and(not_c, dilated)
 
-        dil_erode_grad =morph( morph_func(dilate_and_holes, cv2.erode, 4), 2, cv2.MORPH_GRADIENT)
+        dil_erode = morph_func(dilate_and_holes, cv2.erode, 2)
+
+        dil_erode_grad =morph( dil_erode, 2, cv2.MORPH_GRADIENT)
 
         grad_or_dil = cv2.bitwise_or(dil_erode_grad, gradient_moprh)
 
-        cv2.imshow("display", grad_or_dil)
+        # coords = tuple(zip(*np.where(dil_erode_grad>0)))
+
+        filled_in = gradient_moprh.copy()
+
+        # for coord in coords:
+        #     cv2.floodFill(filled_in, None, (coord[1], coord[0]), 255)
+
+        connected_contour_intersects, _ = cv2.findContours(dil_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        for cci in connected_contour_intersects:
+            cv2.floodFill(filled_in, None, (cci[0][0][0], cci[0][0][1]), 255)
+
+        just_filled = filled_in-gradient_moprh
+        just_filled_erode = morph_func(just_filled, cv2.erode, 2)
+
+        connected_contours, _ = cv2.findContours(just_filled_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
+
+        show = cv2.cvtColor(just_filled_erode, cv2.COLOR_GRAY2BGR)
+        for r in c_rects:
+            q = rect_kdtree.query(r)
+            if q[0]<20:
+                print(q)
+                cv2.drawContours(show, [fill_contours[q[1]]], -1, (0, 255, 0, ), 2, cv2.LINE_4)
+        print("---")
+
+        cv2.imshow("display", show)
         
