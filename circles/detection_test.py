@@ -159,7 +159,7 @@ while True:
         
         not_c = cv2.bitwise_and(cv2.bitwise_not(c), invert_gray)
 
-        dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*3))
+        dilated = morph_func(c, cv2.dilate, kernel_size=int(half_stroke_width*4))
 
         # index%=len(hierarchy)
         # print((tuple(hierarchy[index]),))
