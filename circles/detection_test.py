@@ -34,7 +34,7 @@ class Parser:
         self.invert_gray = cv2.bitwise_not(self.gray)
         self.area_contours, (self.retr_hierarchy,) = cv2.findContours(self.invert_gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        np_area_contours = np.array(self.area_contours)
+        np_area_contours = np.array(self.area_contours, dtype=object)
 
         first_found=None
 
@@ -60,10 +60,6 @@ class Parser:
 
         hierarchy[h_index]=Parser.find_same_hierarchied(self.retr_hierarchy, first_found)
 
-        print(hierarchy)
-
-        print(self.half_stroke_width)
-
         hole_contour_indices = [n for l in list(hierarchy.values())[2:] for n in l]
         self.hole_contours = np_area_contours[(hole_contour_indices,)]
 
@@ -74,7 +70,7 @@ class Parser:
 
         rects = [cv2.boundingRect(c) for c in self.fill_contours]
 
-        rect_kdtree = KDTree(rects)
+        self.rect_kdtree = KDTree(rects)
 
         self.connections = defaultdict(list)
 
@@ -95,7 +91,7 @@ class Parser:
             c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
 
             for r in c_rects:
-                q = rect_kdtree.query(r)
+                q = self.rect_kdtree.query(r)
                 if q[0]<20:
                     self.connections[i]+=[q[1]]
 
@@ -115,8 +111,8 @@ class Parser:
 
         filled_contour_intersects, _ = cv2.findContours(to_fill, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        for cci in filled_contour_intersects:
-            cv2.floodFill(filled_in, None, (cci[0][0][0], cci[0][0][1]), 255)
+        for fci in filled_contour_intersects:
+            cv2.floodFill(filled_in, None, (fci[0][0][0], fci[0][0][1]), 255)
 
         just_filled = filled_in-self.gradient_moprh
         just_filled_erode = Parser.morph_func(just_filled, cv2.erode, 2)
@@ -146,7 +142,7 @@ class Parser:
 
         if circles is not None:
             for c in circles[0]:
-                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (0, 0, 255), 3)
+                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 2)
                 cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
                 pass
 
@@ -179,9 +175,9 @@ class Parser:
         return func(img, kernel)
 
     @staticmethod
-    def mask_contours(cnts, img):
+    def mask_contours(cnts, img, color = 255):
         mask = np.zeros(img.shape, np.uint8)
-        cv2.drawContours(mask, cnts, -1, (255, 255, 255), -1, cv2.LINE_AA)
+        cv2.drawContours(mask, cnts, -1, (color, color, color), -1, cv2.LINE_AA)
         return mask
 
     @staticmethod
@@ -225,7 +221,6 @@ class Parser:
 
             glob_rect_kdtree = KDTree(glob_rects)
 
-            print(glob_rects)
 
             circle_groups = defaultdict(list)
 
@@ -234,34 +229,52 @@ class Parser:
             for c in circles[0]:
                 q = glob_rect_kdtree.query((c[0],c[1]))
                 circle_groups[q[1]].append(c)
-                print(q)
 
             for i in circle_groups.keys():
                 avg = np.average(circle_groups[i], axis=0)
                 avg_int = avg.astype(np.int32)
                 cv2.circle(ret, avg_int[:2], avg_int[2], 255)
 
-            all_glob_and_holes = cv2.cvtColor(np.zeros(self.image.shape, dtype=self.invert_gray.dtype), cv2.COLOR_BGR2GRAY)
+            all_stuff = cv2.cvtColor(np.zeros(self.image.shape, dtype=self.invert_gray.dtype), cv2.COLOR_BGR2GRAY)
 
             for gc in glob_contours:
                 glob_and_holes = cv2.bitwise_and(Parser.mask_contours([gc], self.invert_gray), self.holes)
 
-                glob_and_holes_erode = self.morph_func(glob_and_holes, cv2.erode, 3)
+                glob_and_holes_erode = self.morph_func(glob_and_holes, cv2.erode, 4)
 
                 gahe_grad = self.morph(glob_and_holes_erode, 2, cv2.MORPH_GRADIENT)
 
-                
-                
-                all_glob_and_holes=cv2.bitwise_or(all_glob_and_holes, gahe_grad)
+                filled_contour_intersects, _ = cv2.findContours(glob_and_holes_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            print(f"{circles}, {circle_groups}")
-            return all_glob_and_holes
+                cv2.drawContours(all_stuff, filled_contour_intersects, -1, 255, 3)
+
+                filled_in = self.gradient_moprh.copy()
+
+                for fci in filled_contour_intersects:
+                    for fcii in fci:
+                        cv2.floodFill(filled_in, None, (fcii[0][0], fcii[0][1]), 255)
+
+                just_filled_in = filled_in-self.gradient_moprh
+                just_filled_in_e = self.morph_func(just_filled_in, cv2.erode, 2)
+
+                found_contours, _ = cv2.findContours(just_filled_in_e, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+                found_bounds = [cv2.boundingRect(fc) for fc in found_contours]
+
+                print(f"{found_bounds}")
+
+                print([self.rect_kdtree.query(fb) for fb in found_bounds])
+                
+                all_stuff=cv2.bitwise_or(all_stuff, just_filled_in_e)
+
+            return all_stuff
 
         return ret
 
     def loop(self):
         index=0
         while True:
+            print("=======")
             k=cv2.waitKey(0)
 
             if chr(k)=="q":
@@ -284,22 +297,23 @@ class Parser:
                 index%=len(self.fill_contours)
 
                 k = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
-                print(f"{k=}")
 
                 gray_blur = cv2.GaussianBlur(self.gray, (k*2+1,k*2+1),0)
 
                 show = self.image.copy()
                 circs = Parser.get_circles(gray_blur, show, min_dist=k, param1=200,param2=65)
                 from_cnt = self.fill_contours[index]
+                cv2.drawContours(show, [from_cnt], -1, (0,255,0), 2)
 
                 for to_i in self.connections[index]:
                     to_cnt = self.fill_contours[to_i]
 
+                    cv2.drawContours(show, [to_cnt], -1, (0,0,255), 2)
                     cv2.line(show, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), (255,0,0), thickness=2)
 
-                cv2.imshow("display", self.search_circles(circs))
-            
-parser = Parser(5)
+                # cv2.imshow("display", self.search_circles(circs))
+                cv2.imshow("display", show)
+parser = Parser(1)
 
 parser.run()
 
