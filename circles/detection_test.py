@@ -72,7 +72,7 @@ class Parser:
 
         self.rect_kdtree = KDTree(rects)
 
-        self.connections = defaultdict(list)
+        self.connections = defaultdict(set)
 
         self.holes = Parser.mask_contours(self.hole_contours, self.invert_gray)
         for i, contour in enumerate(self.fill_contours):
@@ -93,7 +93,8 @@ class Parser:
             for r in c_rects:
                 q = self.rect_kdtree.query(r)
                 if q[0]<20:
-                    self.connections[i]+=[q[1]]
+                    self.connections[i].add(q[1])
+                    self.connections[q[1]].add(i)
 
         show_connections = self.image.copy()
 
@@ -142,7 +143,7 @@ class Parser:
 
         if circles is not None:
             for c in circles[0]:
-                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 2)
+                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 1)
                 cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
                 pass
 
@@ -293,14 +294,17 @@ class Parser:
                     self.program=np.clip(self.program, self.MIN_PROGRAM,self.MAX_PROGRAM)
                     self.run()
                 else:
-                    index=int(chr(k))
+                    pass
                 index%=len(self.fill_contours)
 
                 k = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
 
                 gray_blur = cv2.GaussianBlur(self.gray, (k*2+1,k*2+1),0)
+                gray_blur_very = cv2.GaussianBlur(self.gray, (k*8+1,k*8+1),0)
 
-                show = self.image.copy()
+                _, thresh = cv2.threshold(gray_blur_very, 1, 255, cv2.THRESH_BINARY)
+
+                show = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
                 circs = Parser.get_circles(gray_blur, show, min_dist=k, param1=200,param2=65)
                 from_cnt = self.fill_contours[index]
                 cv2.drawContours(show, [from_cnt], -1, (0,255,0), 2)
