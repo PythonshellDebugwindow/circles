@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 import cv2
 import numpy as np
+from numpy.lib.index_tricks import c_
 from scipy.spatial import KDTree
 from collections import defaultdict
 
@@ -28,13 +29,27 @@ class Parser:
 
         gray_distance_transform = cv2.distanceTransform(self.gray, cv2.DIST_L2, 5)
         self.half_stroke_width = np.max(gray_distance_transform)
+        self.odd_half_stroke_width = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
 
+        self.gray_blur = cv2.GaussianBlur(self.gray, (self.odd_half_stroke_width*2+1,self.odd_half_stroke_width*2+1),0)
+        gray_blur_very = cv2.GaussianBlur(self.gray, (self.odd_half_stroke_width*6+1,self.odd_half_stroke_width*6+1),0)
+
+        _, thresh = cv2.threshold(gray_blur_very, 1, 255, cv2.THRESH_BINARY)
+        thresh_bordered = thresh.copy()
+        print(self.image.shape)
+        cv2.rectangle(thresh_bordered, (0,0), (self.image.shape[1], self.image.shape[0]), 0, 2)
+        thresh_morph = Parser.morph(thresh_bordered, kernel_size=self.odd_half_stroke_width*4, morph=cv2.MORPH_ERODE)
+        thresh_morph_blur = cv2.GaussianBlur(thresh_morph, (self.odd_half_stroke_width*8+1,self.odd_half_stroke_width*8+1),0)
+        _, thresh_mb_thresh = cv2.threshold(thresh_morph_blur, 127, 255, cv2.THRESH_BINARY)
+
+        self.foreground_mask = thresh_mb_thresh.copy()
+        self.invert_foreground_mask = cv2.bitwise_not(self.foreground_mask)
         self.outer_distance_transform = cv2.distanceTransform(outer_contour_mask, cv2.DIST_L2, 5)
         
         self.invert_gray = cv2.bitwise_not(self.gray)
         self.area_contours, (self.retr_hierarchy,) = cv2.findContours(self.invert_gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        np_area_contours = np.array(self.area_contours, dtype=object)
+        self.np_area_contours = np.array(self.area_contours, dtype=object)
 
         first_found=None
 
@@ -42,7 +57,7 @@ class Parser:
             if c[3]==-1:
                 first_found=i
 
-        hierarchy = {}
+        self.hierarchy_dict = {}
 
         found_something = False
         h_index=0
@@ -50,21 +65,27 @@ class Parser:
         while self.retr_hierarchy[first_found][2]!=-1:
             same_h = Parser.find_same_hierarchied(self.retr_hierarchy, first_found)
 
-            hierarchy[h_index]=same_h
+            self.hierarchy_dict[h_index]=same_h
 
             for c in same_h:
                 if self.retr_hierarchy[c][2]!=-1:
                     first_found=self.retr_hierarchy[c][2]
                     h_index+=1
-                    found_something=True
 
-        hierarchy[h_index]=Parser.find_same_hierarchied(self.retr_hierarchy, first_found)
+        self.hierarchy_dict[h_index]=Parser.find_same_hierarchied(self.retr_hierarchy, first_found)
 
-        hole_contour_indices = [n for l in list(hierarchy.values())[2:] for n in l]
-        self.hole_contours = np_area_contours[(hole_contour_indices,)]
+        self.contour_dict = {}
 
-        fill_contour_indices = [n for l in list(hierarchy.values())[:1]+list(hierarchy.values())[2:] for n in l]
-        self.fill_contours = np_area_contours[(fill_contour_indices,)]
+        for h in self.hierarchy_dict.keys():
+            for cont in self.hierarchy_dict[h]:
+                self.contour_dict[cont]=h
+
+        hole_contour_indices = [n for l in list(self.hierarchy_dict.values())[2::2] for n in l]
+        self.hole_contours = self.np_area_contours[(hole_contour_indices,)]
+
+        self.fill_contour_indices = [n for l in list(self.hierarchy_dict.values())[::2] for n in l]
+
+        self.fill_contours = self.np_area_contours[(self.fill_contour_indices,)]
 
         self.gradient_moprh = Parser.morph(self.invert_gray, 2, cv2.MORPH_GRADIENT)
 
@@ -74,11 +95,17 @@ class Parser:
 
         self.connections = defaultdict(set)
 
+        self.all_fill_contour_hierarchies = [self.contour_dict[fci] for fci in self.fill_contour_indices]
+        
+        self.on_foreground_dict = defaultdict(bool)
+
         self.holes = Parser.mask_contours(self.hole_contours, self.invert_gray)
         for i, contour in enumerate(self.fill_contours):
             c = Parser.mask_contours([self.fill_contours[i]], self.invert_gray)
 
             not_c = cv2.bitwise_and(cv2.bitwise_not(c), self.invert_gray)
+
+            from_on_foreground = self.check_if_on_foreground(c, i)
 
             dilated = Parser.morph_func(c, cv2.dilate, kernel_size=int(self.half_stroke_width*4))
 
@@ -93,10 +120,17 @@ class Parser:
             for r in c_rects:
                 q = self.rect_kdtree.query(r)
                 if q[0]<20:
+                    mask_to = self.mask_contours([self.fill_contours[q[1]]], self.invert_gray)
+                    to_on_foreground = self.check_if_on_foreground(mask_to, q[1])
+
+                    self.on_foreground_dict[q[1]] = to_on_foreground
+                    self.on_foreground_dict[i] = from_on_foreground
+
                     self.connections[i].add(q[1])
                     self.connections[q[1]].add(i)
 
         show_connections = self.image.copy()
+
 
         for from_i in self.connections.keys():
             from_cnt = self.fill_contours[from_i]
@@ -104,8 +138,39 @@ class Parser:
             for to_i in self.connections[from_i]:
                 to_cnt = self.fill_contours[to_i]
 
-                cv2.line(show_connections, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), (255,0,0))
+                col = (255,0,0)
+
+                if self.on_foreground_dict[to_i]:
+                    col = (255,255,0)
+
+                cv2.line(show_connections, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), col)
+
         cv2.imshow("display", show_connections)
+
+    def check_if_on_foreground(self,cont,cont_index):
+        hierarchy = self.contour_dict[self.fill_contour_indices[cont_index]]
+        below = np.zeros(self.invert_gray.shape, dtype=self.invert_gray.dtype)
+
+        if hierarchy<np.max(self.all_fill_contour_hierarchies):
+            h = hierarchy
+
+            while h<np.max(self.all_fill_contour_hierarchies):
+                h+=2
+                current_h_contours = self.np_area_contours[list(self.hierarchy_dict.values())[h]]
+                current_h_mask = Parser.mask_contours(current_h_contours, self.invert_gray)
+
+                below = cv2.bitwise_or(below, current_h_mask)
+
+        below_invert = cv2.bitwise_not(below)
+        without_holes = cv2.bitwise_and(below_invert, cont)
+
+        on_background = cv2.bitwise_and(without_holes, self.invert_foreground_mask)
+        on_foreground = cv2.bitwise_and(without_holes, self.foreground_mask)
+
+        back_sum = np.sum(on_background)
+        fore_sum = np.sum(on_foreground)
+
+        return fore_sum>back_sum
 
     def get_filled_in(self, to_fill):
         filled_in = self.gradient_moprh.copy()
@@ -171,9 +236,9 @@ class Parser:
         return cv2.morphologyEx(img, morph, kernel)
 
     @staticmethod
-    def morph_func(img, func, kernel_size=2):
+    def morph_func(img, func, kernel_size=2, iterations=1):
         kernel = np.ones((kernel_size,kernel_size),np.uint8)
-        return func(img, kernel)
+        return func(img, kernel, iterations=iterations)
 
     @staticmethod
     def mask_contours(cnts, img, color = 255):
@@ -276,20 +341,21 @@ class Parser:
         index=0
         while True:
             print("=======")
-            k=cv2.waitKey(0)
+            key=cv2.waitKey(0)
+            print(f"{index=}")
 
-            if chr(k)=="q":
+            if chr(key)=="q":
                 exit()
             
             else:
-                if chr(k)=='.':
+                if chr(key)=='.':
                     index+=1
-                elif chr(k)==',':
+                elif chr(key)==',':
                     index-=1
-                elif chr(k) in '[]':
-                    if chr(k)=='[':
+                elif chr(key) in '[]':
+                    if chr(key)=='[':
                         self.program-=1
-                    elif chr(k)==']':
+                    elif chr(key)==']':
                         self.program+=1
                     self.program=np.clip(self.program, self.MIN_PROGRAM,self.MAX_PROGRAM)
                     self.run()
@@ -297,27 +363,34 @@ class Parser:
                     pass
                 index%=len(self.fill_contours)
 
-                k = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
+                self.odd_half_stroke_width = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
 
-                gray_blur = cv2.GaussianBlur(self.gray, (k*2+1,k*2+1),0)
-                gray_blur_very = cv2.GaussianBlur(self.gray, (k*8+1,k*8+1),0)
 
-                _, thresh = cv2.threshold(gray_blur_very, 1, 255, cv2.THRESH_BINARY)
-
-                show = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-                circs = Parser.get_circles(gray_blur, show, min_dist=k, param1=200,param2=65)
+                show = cv2.cvtColor(self.foreground_mask, cv2.COLOR_GRAY2BGR)
+                circs = Parser.get_circles(self.gray_blur, show, min_dist=self.odd_half_stroke_width, param1=200,param2=65)
                 from_cnt = self.fill_contours[index]
-                cv2.drawContours(show, [from_cnt], -1, (0,255,0), 2)
+
+                from_col = (0,255,0)
+
+                if self.on_foreground_dict[index]:
+                    from_col = (0,255,255)
+
+                cv2.drawContours(show, [from_cnt], -1, from_col, 2)
 
                 for to_i in self.connections[index]:
                     to_cnt = self.fill_contours[to_i]
 
-                    cv2.drawContours(show, [to_cnt], -1, (0,0,255), 2)
-                    cv2.line(show, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), (255,0,0), thickness=2)
+                    to_col = (255,0,0)
+
+                    if self.on_foreground_dict[to_i]:
+                        to_col = (255,255,0)
+
+                    cv2.drawContours(show, [to_cnt], -1, to_col, 2)
+                    cv2.line(show, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), to_col, thickness=2)
 
                 # cv2.imshow("display", self.search_circles(circs))
                 cv2.imshow("display", show)
-parser = Parser(1)
+parser = Parser(5)
 
 parser.run()
 
