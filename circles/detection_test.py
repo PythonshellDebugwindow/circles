@@ -15,9 +15,11 @@ class Parser:
         self.image = cv2.imread(Parser.get_program(self.program))
 
         self.gray = cv2.cvtColor(self.image,cv2.COLOR_RGB2GRAY)
+        print(self.gray.dtype)
         self.gray = cv2.bitwise_not(self.gray)
         self.gray = Parser.morph_func(self.gray, cv2.dilate)
-        
+        cv2.threshold(self.gray, 0,1, cv2.THRESH_BINARY)
+
         self.invert_gray = cv2.bitwise_not(self.gray)
 
         self.blank = cv2.cvtColor(np.zeros(self.image.shape, dtype=self.invert_gray.dtype), cv2.COLOR_BGR2GRAY)
@@ -28,16 +30,53 @@ class Parser:
 
         outer_contours, _ = cv2.findContours(self.gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         outer_contour_mask = Parser.mask_contours(outer_contours, self.gray)
+        self.maxes = []
+        im = self.gray.copy()
 
-        gray_distance_transform = cv2.distanceTransform(self.gray, cv2.DIST_L2, 5)
-        self.half_stroke_width = np.max(gray_distance_transform)
+        while True:
+            dt = cv2.distanceTransform(im, cv2.DIST_L2, 0)
+            max_dt = np.max(dt)
+            if max_dt==0:
+                break
+            self.maxes.append(max_dt)
+            where_max = np.where(dt==max_dt)
+            max_coords = list(zip(*where_max))
+
+            for c in max_coords:
+                cv2.circle(im, (c[1], c[0]), int(max_dt), 0, -1)
+            
+
+        im = self.invert_gray.copy()
+        while True:
+            dt = cv2.distanceTransform(im, cv2.DIST_L2, 0)
+            max_dt = np.max(dt)
+            if max_dt==0:
+                break
+            where_max = np.where(dt==max_dt)
+            max_coords = list(zip(*where_max))
+
+            for c in max_coords:
+                cv2.circle(im, (c[1], c[0]), int(max_dt), 0, -1)
+
+            cv2.imshow("display", im)
+            ke = cv2.waitKey(0)
+            if chr(ke)=='q':
+                break
+
+        self.maxes = np.array(self.maxes)
+        max_diff = np.diff(self.maxes)
+        avg_diff = np.average(max_diff)
+        stroke_index = np.where(max_diff<=avg_diff)[0][0]+1
+
+        self.gray_distance_transform = cv2.distanceTransform(self.gray, cv2.DIST_L2, 0)
+        self.half_stroke_width = self.maxes[stroke_index]
         self.odd_half_stroke_width = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
 
         self.gray_blur = cv2.GaussianBlur(self.gray, (self.odd_half_stroke_width*2+1,self.odd_half_stroke_width*2+1),0)
-        gray_blur_very = cv2.GaussianBlur(self.gray, (self.odd_half_stroke_width*6+1,self.odd_half_stroke_width*6+1),0)
+        self.gray_blur_very = cv2.GaussianBlur(self.gray, (self.odd_half_stroke_width*6+1,self.odd_half_stroke_width*6+1),0)
 
-        _, thresh = cv2.threshold(gray_blur_very, 1, 255, cv2.THRESH_BINARY)
-        thresh_bordered = thresh.copy()
+        _, self.thresh = cv2.threshold(self.gray_blur_very, 1, 255, cv2.THRESH_BINARY)
+        thresh_bordered = self.thresh.copy()
         print(self.image.shape)
         cv2.rectangle(thresh_bordered, (0,0), (self.image.shape[1], self.image.shape[0]), 0, 2)
         thresh_morph = Parser.morph(thresh_bordered, kernel_size=self.odd_half_stroke_width*4, morph=cv2.MORPH_ERODE)
@@ -108,13 +147,16 @@ class Parser:
 
             from_on_foreground = self.check_if_on_foreground(c, i)
 
-            dilated = Parser.morph_func(c, cv2.dilate, kernel_size=int(self.half_stroke_width*2+2))
+            dilated = Parser.morph_func(c, cv2.dilate, kernel_size=int(self.half_stroke_width*4+2))
 
             dilate_and_holes = cv2.bitwise_and(not_c, dilated)
 
             dil_erode = Parser.morph_func(dilate_and_holes, cv2.erode, 2)
 
             connected_contours = self.get_filled_in(dil_erode)
+
+            drawn = cv2.drawContours(self.image.copy(), [contour], -1, (255,0,0),5)
+            cv2.imwrite(f"debug\\thing-{i}.png", dil_erode)
             
             c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
 
@@ -143,7 +185,9 @@ class Parser:
                 if self.on_foreground_dict[to_i]:
                     col = (255,255,0)
 
-                cv2.line(show_connections, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), col)
+                cv2.line(show_connections, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), col)        
+
+        cv2.imshow("display", self.holes)
 
     def check_if_on_foreground(self,cont,cont_index):
         hierarchy = self.contour_dict[self.fill_contour_indices[cont_index]]
@@ -176,7 +220,8 @@ class Parser:
         filled_contour_intersects, _ = cv2.findContours(to_fill, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         for fci in filled_contour_intersects:
-            cv2.floodFill(filled_in, None, (fci[0][0][0], fci[0][0][1]), 255)
+            for fcic in fci[0]:
+                cv2.floodFill(filled_in, None, fcic, 255)
 
         just_filled = filled_in-self.gradient_moprh
         just_filled_erode = Parser.morph_func(just_filled, cv2.erode, 2)
@@ -340,13 +385,15 @@ class Parser:
 
     def loop(self):
         index=0
-        cv2.imshow("display", self.image)
+        mode=0
+        MAX_MODE=4
         while True:
             print("=======")
             key=cv2.waitKey(0)
             print(f"{index=}")
+            print(f"{key=}")
 
-            if chr(key)=="q":
+            if key==-1 or chr(key)=="q":
                 exit()
             
             else:
@@ -361,13 +408,19 @@ class Parser:
                         self.program+=1
                     self.program=np.clip(self.program, self.MIN_PROGRAM,self.MAX_PROGRAM)
                     self.run()
+                elif chr(key)=="-":
+                    mode+=1
+                    mode%=MAX_MODE
+                elif chr(key)=="=":
+                    mode-=1
+                    mode%=MAX_MODE
                 else:
-                    pass
+                    continue
                 index%=len(self.fill_contours)
 
                 self.odd_half_stroke_width = int(self.half_stroke_width)+(int(self.half_stroke_width)+1)%2
 
-                show = cv2.cvtColor(self.foreground_mask, cv2.COLOR_GRAY2BGR)
+                show = cv2.cvtColor(self.foreground_distance_transform, cv2.COLOR_GRAY2BGR)
                 circs = Parser.get_circles(self.gray_blur, show, min_dist=self.odd_half_stroke_width, param1=200,param2=65)
                 from_cnt = self.fill_contours[index]
 
@@ -389,13 +442,23 @@ class Parser:
                     cv2.drawContours(show, [to_cnt], -1, to_col, 2)
                     cv2.line(show, self.get_contour_centroid(from_cnt), self.get_contour_centroid(to_cnt), to_col, thickness=2)
 
-                actual_circles = self.search_circles(circs)
-                print(actual_circles[1])
-                print(actual_circles[2])
+                print(self.maxes)
+                print()
+                
+                print(f"{self.half_stroke_width=}")
+                if mode==1:
+                    actual_circles = self.search_circles(circs)
+                    print(actual_circles[1])
+                    print(actual_circles[2])
+                    cv2.imshow("display", actual_circles[0])
+                elif mode==2:
+                    cv2.imshow("display", self.thresh)
+                elif mode==3:
+                    cv2.imshow("display", show)
+                else:
+                    cv2.imshow("display", self.image)
 
-                cv2.imshow("display", actual_circles[0])
-                # cv2.imshow("display", show)
-parser = Parser(5)
+parser = Parser(6)
 
 parser.run()
 
