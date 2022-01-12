@@ -156,8 +156,7 @@ class Parser:
             connected_contours = self.get_filled_in(dil_erode)
 
             drawn = cv2.drawContours(self.image.copy(), [contour], -1, (255,0,0),5)
-            cv2.imwrite(f"debug\\thing-{i}.png", dil_erode)
-            
+
             c_rects = [cv2.boundingRect(cc) for cc in connected_contours]
 
             for r in c_rects:
