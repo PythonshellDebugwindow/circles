@@ -41,6 +41,7 @@ class Parser:
         self.foreground_dist_trans_norm = self.foreground_dist_trans/np.max(self.foreground_dist_trans)
         ret,self.foreground_dist_trans_norm_thresh = cv2.threshold(self.foreground_dist_trans_norm,0.5,1,cv2.THRESH_BINARY)
 
+        potential_circle_contours, _ = Parser.find_contours(np.array(self.foreground_dist_trans_norm_thresh, dtype=self.fill.dtype),)
         Parser.display(dist/np.max(dist))
 
     @staticmethod
