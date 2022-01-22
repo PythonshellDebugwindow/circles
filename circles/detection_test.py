@@ -42,7 +42,40 @@ class Parser:
         ret,self.foreground_dist_trans_norm_thresh = cv2.threshold(self.foreground_dist_trans_norm,0.5,1,cv2.THRESH_BINARY)
 
         potential_circle_contours, _ = Parser.find_contours(np.array(self.foreground_dist_trans_norm_thresh, dtype=self.fill.dtype),)
-        Parser.display(dist/np.max(dist))
+
+        self.circles_debug = self.image.copy()
+
+        hough_circles = Parser.get_hough_circles(self.stroke)
+
+        circle_positions=hough_circles[:,:2]
+
+        circle_pos_kdtree = KDTree(circle_positions)
+
+        self.circles_mask = np.zeros_like(self.gray)
+
+        self.circles = []
+
+        for i, pcc in enumerate(potential_circle_contours):
+            pcc_mask = Parser.mask_contours([pcc], self.gray)
+            pcc_mask_fdt = self.foreground_dist_trans.copy()
+            pcc_mask_fdt[np.where(pcc_mask==0)]=0
+            max_pcc_fdt = np.max(pcc_mask_fdt)
+
+            where_max = list(zip(*np.where(pcc_mask_fdt==max_pcc_fdt)))
+            max_x = int(np.average([w[1] for w in where_max]))
+            max_y = int(np.average([w[0] for w in where_max]))
+
+            query=circle_pos_kdtree.query((max_x, max_y))
+
+            if query[0]<max_pcc_fdt:
+                cv2.circle(self.circles_debug, (max_x, max_y), int(max_pcc_fdt), (255,0,0), -1)
+                cv2.circle(self.circles_mask, (max_x, max_y), int(max_pcc_fdt), 255, -1)
+
+                self.circles.append(hough_circles[query[1]])
+
+        self.paths_mask = Parser.morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
+
+        Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
 
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
@@ -53,7 +86,7 @@ class Parser:
         return f"images\program-{number}.png"
 
     @staticmethod
-    def get_circles(img, debug, min_dist=50, max_radius = None, param1=100, param2=50):
+    def get_hough_circles(img, debug=None, min_dist=50, max_radius = None, param1=100, param2=50):
         if max_radius is None:
             max_radius = np.min(img.shape)
 
@@ -68,10 +101,12 @@ class Parser:
         )
 
         if circles is not None:
-            for c in circles[0]:
-                cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 1)
-                cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
-                pass
+            if debug is not None:
+                for c in circles[0]:
+                    cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 1)
+                    cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
+
+            return circles[0]
 
         return circles
 
@@ -157,14 +192,17 @@ class Parser:
                     
                     Parser.display(fill_contour_mask)
                 elif mode==1:
-                    Parser.display(self.gray)
+                    dst = cv2.cornerHarris(self.gray,2,3,0.04)
+                    dst = cv2.dilate(dst,None)
+                    disp = self.image.copy()
+                    disp[dst>0.01*dst.max()]=[0,0,255]
+
+                    Parser.display(disp)
                 elif mode==2:
-                    debug = cv2.cvtColor(self.stroke, cv2.COLOR_GRAY2BGR) 
-                    Parser.get_circles(self.stroke, debug)
-                
-                    Parser.display(debug)
+                    Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
                 elif mode==3:
-                    Parser.display(self.foreground_dist_trans_norm_thresh)
+                    Parser.display(self.circles_mask)
+                    print(self.circles)
             print(f"{index=}")
             print(f"{key=}")
             print(f"{mode=}")
