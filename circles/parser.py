@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from textwrap import fill
 import cv2
 import numpy as np
 from scipy.spatial import KDTree
@@ -10,6 +11,7 @@ class Parser:
         self.MAX_PROGRAM = 7
         self.MIN_PROGRAM = 1
         self.program = program
+        self.DILATE_PATH = 10
 
     @staticmethod
     def display(img):
@@ -73,7 +75,31 @@ class Parser:
 
                 self.circles.append(hough_circles[query[1]])
 
+        circles_kdtree = KDTree(self.circles)
+
         self.paths_mask = Parser.morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
+
+        path_contours, _ = Parser.find_contours(self.paths_mask)
+
+        circles_grad = Parser.morph(self.circles_mask, 2, cv2.MORPH_GRADIENT)
+
+        for pc in path_contours:
+            print("ASDADASDAS")
+            pc_mask = Parser.mask_contours([pc], self.gray)
+            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, self.DILATE_PATH)
+            pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
+            pcmdac_contours, _ = Parser.find_contours(pcmd_and_circles)
+
+            filled_circles_grad = circles_grad.copy()
+
+            for pcmdacc in pcmdac_contours:
+                pcmdacc_centroid = Parser.get_contour_centroid(pcmdacc)
+                cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
+
+            just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
+
+            Parser.display(cv2.bitwise_or(just_filled_circles, pc_mask))
+            cv2.waitKey(0)
 
         Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
 
@@ -138,7 +164,7 @@ class Parser:
 
     @staticmethod
     def mask_contours(cnts, img, color = 255):
-        mask = np.zeros(img.shape, np.uint8)
+        mask = np.zeros_like(img)
         cv2.drawContours(mask, cnts, -1, color, -1, cv2.LINE_AA)
         return mask
 
