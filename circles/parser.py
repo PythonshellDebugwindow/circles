@@ -1,18 +1,17 @@
 import os
-from pathlib import Path
+from pathlib import Path as FilePath
 from textwrap import fill
 import cv2
 import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
 
-from program import PathTypes
+from program import PathTypes, Circle, Path
 class Parser:
     def __init__(self, program = 5):
         self.MAX_PROGRAM = 7
         self.MIN_PROGRAM = 1
         self.program = program
-        self.DILATE_PATH = 10
 
     @staticmethod
     def display(img):
@@ -56,7 +55,7 @@ class Parser:
 
         self.circles_mask = np.zeros_like(self.gray)
 
-        self.circles = []
+        self.confirmed_circles = []
 
         for i, pcc in enumerate(potential_circle_contours):
             pcc_mask = Parser.mask_contours([pcc], self.gray)
@@ -74,9 +73,11 @@ class Parser:
                 cv2.circle(self.circles_debug, (max_x, max_y), int(max_pcc_fdt), (255,0,0), -1)
                 cv2.circle(self.circles_mask, (max_x, max_y), int(max_pcc_fdt), 255, -1)
 
-                self.circles.append(hough_circles[query[1]])
+                self.confirmed_circles.append(hough_circles[query[1]])
 
-        circles_kdtree = KDTree(self.circles)
+        circles_kdtree = KDTree(self.confirmed_circles)
+
+        self.circles = [Circle(i, (int(c[0]), int(c[1])), int(c[2])) for i, c in enumerate(self.confirmed_circles)]
 
         self.paths_mask = Parser.morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
 
@@ -84,10 +85,19 @@ class Parser:
 
         circles_grad = Parser.morph(self.circles_mask, 2, cv2.MORPH_GRADIENT)
 
-        for pc in path_contours:
-            print("ASDADASDAS")
+        self.paths_debug = self.image.copy()
+
+        self.paths = []
+
+        for i, pc in enumerate(path_contours):
             pc_mask = Parser.mask_contours([pc], self.gray)
-            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, self.DILATE_PATH)
+            pc_and_fill = cv2.bitwise_and(self.fill, pc_mask)
+            pc_and_stroke = cv2.bitwise_and(self.stroke, pc_mask)
+
+            pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
+            max_pcasdt = np.max(pcas_distance_transform)
+
+            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, max_pcasdt)
             pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
             pcmdac_contours, _ = Parser.find_contours(pcmd_and_circles)
 
@@ -98,11 +108,6 @@ class Parser:
                 cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
 
             just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
-            pc_and_fill = cv2.bitwise_and(self.fill, pc_mask)
-            pc_and_stroke = cv2.bitwise_and(self.stroke, pc_mask)
-
-            pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
-            max_pcasdt = np.max(pcas_distance_transform)
    
             pcaf_contours, _ = Parser.find_contours(pc_and_fill)
             pcafc_centroids = [Parser.get_contour_centroid(pcafc) for pcafc in pcaf_contours]
@@ -133,12 +138,12 @@ class Parser:
 
             path_type_num = (all_path_contours_count - 2)*(int(path_center_contours_count!=all_path_contours_count))
 
-            print(PathTypes(path_type_num))
-            print("-----")
-            Parser.display(filled_path_center)
-            cv2.waitKey(0)
+            self.paths.append(Path(i, PathTypes(path_type_num)))
 
-        Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
+            cv2.putText(self.paths_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,127,255), 2)
+        
+        print(self.confirmed_circles)
+        Parser.display(self.paths_debug)
 
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
@@ -262,10 +267,10 @@ class Parser:
 
                     Parser.display(disp)
                 elif mode==2:
-                    Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
+                    Parser.display(self.paths_debug)
                 elif mode==3:
                     Parser.display(self.circles_mask)
-                    print(self.circles)
+                    print(self.confirmed_circles)
             print(f"{index=}")
             print(f"{key=}")
             print(f"{mode=}")
