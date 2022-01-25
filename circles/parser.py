@@ -6,6 +6,7 @@ import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
 
+from program import PathTypes
 class Parser:
     def __init__(self, program = 5):
         self.MAX_PROGRAM = 7
@@ -102,17 +103,39 @@ class Parser:
 
             pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
             max_pcasdt = np.max(pcas_distance_transform)
-            (min_enclosing_circle_x, min_enclosing_circle_y), _ = cv2.minEnclosingCircle(pc)
+   
+            pcaf_contours, _ = Parser.find_contours(pc_and_fill)
+            pcafc_centroids = [Parser.get_contour_centroid(pcafc) for pcafc in pcaf_contours]
+            pcafcc_avg = np.average(pcafc_centroids, axis=0)
+
+            debuggery = self.image.copy()
+            cv2.circle(debuggery, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), int(max_pcasdt*2), (255,0,0), -1)
 
             path_center_circ = np.zeros_like(self.gray)
-            path_center_circ_test = self.image.copy()
-
-            cv2.circle(path_center_circ, (int(min_enclosing_circle_x), int(min_enclosing_circle_y)), int(max_pcasdt*2), 255, -1)
-            cv2.circle(path_center_circ_test, (int(min_enclosing_circle_x), int(min_enclosing_circle_y)), int(max_pcasdt*2), (255,0,0), 2)
+            cv2.circle(path_center_circ, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), int(max_pcasdt*2), 255, -1)
 
             path_center_circ_minus_stroke = cv2.subtract(path_center_circ, self.stroke)
+            pccms_contours, _ = Parser.find_contours(path_center_circ_minus_stroke)
 
-            Parser.display(path_center_circ_test)
+            filled_path_center = np.zeros_like(self.gray)
+
+            fill_mask = self.stroke.copy()
+            fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
+
+            for pccmsc in pccms_contours:
+                pccmsc_centroid = Parser.get_contour_centroid(pccmsc)
+                cv2.floodFill(filled_path_center, fill_mask, (int(pccmsc_centroid[0]), int(pccmsc_centroid[1])), 255)
+            
+            filled_path_center_contours, _ = Parser.find_contours(filled_path_center)
+
+            all_path_contours_count = len(pcaf_contours)
+            path_center_contours_count = len(filled_path_center_contours)
+
+            path_type_num = (all_path_contours_count - 2)*(int(path_center_contours_count!=all_path_contours_count))
+
+            print(PathTypes(path_type_num))
+            print("-----")
+            Parser.display(filled_path_center)
             cv2.waitKey(0)
 
         Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
