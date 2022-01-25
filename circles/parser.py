@@ -97,8 +97,22 @@ class Parser:
                 cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
 
             just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
+            pc_and_fill = cv2.bitwise_and(self.fill, pc_mask)
+            pc_and_stroke = cv2.bitwise_and(self.stroke, pc_mask)
 
-            Parser.display(cv2.bitwise_or(just_filled_circles, pc_mask))
+            pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
+            max_pcasdt = np.max(pcas_distance_transform)
+            (min_enclosing_circle_x, min_enclosing_circle_y), _ = cv2.minEnclosingCircle(pc)
+
+            path_center_circ = np.zeros_like(self.gray)
+            path_center_circ_test = self.image.copy()
+
+            cv2.circle(path_center_circ, (int(min_enclosing_circle_x), int(min_enclosing_circle_y)), int(max_pcasdt*2), 255, -1)
+            cv2.circle(path_center_circ_test, (int(min_enclosing_circle_x), int(min_enclosing_circle_y)), int(max_pcasdt*2), (255,0,0), 2)
+
+            path_center_circ_minus_stroke = cv2.subtract(path_center_circ, self.stroke)
+
+            Parser.display(path_center_circ_test)
             cv2.waitKey(0)
 
         Parser.display(cv2.bitwise_or(self.circles_mask, self.paths_mask))
