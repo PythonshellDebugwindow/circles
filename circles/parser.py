@@ -161,6 +161,19 @@ class Parser:
                 self.paths[i].connect_circle(self.circles[circle_query[1]])
         
         print(self.paths)
+        
+        max_stroke_width = int(np.max(stroke_widths))
+
+        for circle in self.circles:
+            circle_mask = np.zeros_like(self.gray)
+            cv2.circle(circle_mask, circle.center, circle.radius, 255, -1)
+
+            circle_fill = cv2.bitwise_and(self.fill, circle_mask)
+            circle_center = np.zeros_like(self.gray)
+            cv2.circle(circle_center, circle.center, max_stroke_width*4, 255, -1)
+            circle_fill_and_center = cv2.bitwise_and(circle_fill, circle_center)
+            Parser.display_and_wait(circle_fill_and_center)
+
         Parser.display(self.paths_debug)
 
     @staticmethod
