@@ -2,16 +2,18 @@ import os
 from pathlib import Path as FilePath
 from textwrap import fill
 import cv2
+from cv2 import cvtColor
 import numpy as np
 from scipy.spatial import KDTree
 from collections import defaultdict
 
-from program import PathTypes, Circle, Path
+from program import CircleTypes, PathTypes, Circle, Path
 class Parser:
     def __init__(self, program = 5):
         self.MAX_PROGRAM = 7
         self.MIN_PROGRAM = 1
         self.program = program
+        self.FONT_SCALE = 0.6
 
     @staticmethod
     def display(img):
@@ -78,7 +80,7 @@ class Parser:
                 cv2.circle(self.circles_debug, (max_x, max_y), int(max_pcc_fdt), (255,0,0), -1)
                 cv2.circle(self.circles_mask, (max_x, max_y), int(max_pcc_fdt), 255, -1)
 
-                self.confirmed_circles.append(hough_circles[query[1]])
+                self.confirmed_circles.append((max_x, max_y, int(max_pcc_fdt)))
 
         circles_kdtree = KDTree(self.confirmed_circles)
 
@@ -93,7 +95,7 @@ class Parser:
         fill_mask = self.stroke.copy()
         fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
 
-        self.paths_debug = self.image.copy()
+        self.id_debug = cvtColor(self.stroke//4, cv2.COLOR_GRAY2BGR)
 
         self.paths = []
 
@@ -137,7 +139,7 @@ class Parser:
 
             self.paths.append(Path(i, PathTypes(path_type_num)))
 
-            cv2.putText(self.paths_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,127,255), 2)
+            cv2.putText(self.id_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, self.FONT_SCALE, (0,127,255), 2)
 
             pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, int(max_pcasdt*2))
             pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
@@ -160,21 +162,45 @@ class Parser:
 
                 self.paths[i].connect_circle(self.circles[circle_query[1]])
         
-        print(self.paths)
-        
         max_stroke_width = int(np.max(stroke_widths))
 
         for circle in self.circles:
             circle_mask = np.zeros_like(self.gray)
             cv2.circle(circle_mask, circle.center, circle.radius, 255, -1)
 
-            circle_fill = cv2.bitwise_and(self.fill, circle_mask)
+            circle_fill = cv2.bitwise_and(cv2.bitwise_and(self.fill, circle_mask), self.circles_mask)
             circle_center = np.zeros_like(self.gray)
             cv2.circle(circle_center, circle.center, max_stroke_width*4, 255, -1)
             circle_fill_and_center = cv2.bitwise_and(circle_fill, circle_center)
-            Parser.display_and_wait(circle_fill_and_center)
+            cfac_contours, _ = Parser.find_contours(circle_fill_and_center)
+            cfac_contours_count = len(cfac_contours)
 
-        Parser.display(self.paths_debug)
+            cf_contours, _ = Parser.find_contours(circle_fill)
+            cf_contours_count = len(cf_contours)
+
+            paths_count = len(circle.paths)
+
+            if paths_count != 0:
+                if cfac_contours_count==0:
+                    circle.type = CircleTypes.OUTPUT
+                elif cfac_contours_count==1:
+                    if paths_count*2+1 == cf_contours_count:
+                        circle.type = CircleTypes.NORMAL
+                    elif paths_count*4+1 == cf_contours_count:
+                        circle.type = CircleTypes.START
+                elif cfac_contours_count==2:
+                    circle.type = CircleTypes.DECREMENT
+                elif cfac_contours_count==4:
+                    circle.type = CircleTypes.INCREMENT
+                else:
+                    circle.type = CircleTypes.UNDEFINED
+            else:
+                circle.type = CircleTypes.UNDEFINED
+
+            cv2.putText(self.id_debug, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, self.FONT_SCALE, (255,127,0), 2)
+
+        print(self.paths)
+        Parser.display(self.id_debug)
 
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
@@ -298,7 +324,7 @@ class Parser:
 
                     Parser.display(disp)
                 elif mode==2:
-                    Parser.display(self.paths_debug)
+                    Parser.display(self.id_debug)
                 elif mode==3:
                     Parser.display(self.circles_mask)
                     print(self.confirmed_circles)

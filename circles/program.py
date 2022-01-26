@@ -25,7 +25,7 @@ class Circle:
         self.paths = []
 
     def __repr__(self) -> str:
-        return f"Circle {self.index} <- {[p.index for p in self.paths]}"
+        return f"{self.type.name} Circle {self.index} <- {[p.index for p in self.paths]}"
 
     def connect_path(self, path:Path):
         self.paths.append(path)
