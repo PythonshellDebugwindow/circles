@@ -24,6 +24,9 @@ class Circle:
         self.type = CircleTypes.UNDEFINED
         self.paths = []
 
+    def __repr__(self) -> str:
+        return f"Circle {self.index} <- {[p.index for p in self.paths]}"
+
     def connect_path(self, path:Path):
         self.paths.append(path)
 
@@ -32,6 +35,9 @@ class Path:
         self.index = index
         self.type = type
         self.circles = []
+
+    def __repr__(self) -> str:
+        return f"{self.type.name} Path {self.index} -> {self.circles}"
 
     def connect_circle(self, circle:Circle):
         self.circles.append(circle)

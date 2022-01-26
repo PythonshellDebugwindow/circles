@@ -18,6 +18,11 @@ class Parser:
         cv2.imshow("display", img)
 
     @staticmethod
+    def display_and_wait(img):
+        Parser.display(img)
+        cv2.waitKey(0)
+
+    @staticmethod
     def distance_transform(img, dist_type=cv2.DIST_L2, mask_size=0):
         return cv2.distanceTransform(img, dist_type, mask_size)
 
@@ -85,9 +90,14 @@ class Parser:
 
         circles_grad = Parser.morph(self.circles_mask, 2, cv2.MORPH_GRADIENT)
 
+        fill_mask = self.stroke.copy()
+        fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
+
         self.paths_debug = self.image.copy()
 
         self.paths = []
+
+        stroke_widths = []
 
         for i, pc in enumerate(path_contours):
             pc_mask = Parser.mask_contours([pc], self.gray)
@@ -97,17 +107,7 @@ class Parser:
             pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
             max_pcasdt = np.max(pcas_distance_transform)
 
-            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, max_pcasdt)
-            pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
-            pcmdac_contours, _ = Parser.find_contours(pcmd_and_circles)
-
-            filled_circles_grad = circles_grad.copy()
-
-            for pcmdacc in pcmdac_contours:
-                pcmdacc_centroid = Parser.get_contour_centroid(pcmdacc)
-                cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
-
-            just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
+            stroke_widths.append(max_pcasdt)
    
             pcaf_contours, _ = Parser.find_contours(pc_and_fill)
             pcafc_centroids = [Parser.get_contour_centroid(pcafc) for pcafc in pcaf_contours]
@@ -124,12 +124,9 @@ class Parser:
 
             filled_path_center = np.zeros_like(self.gray)
 
-            fill_mask = self.stroke.copy()
-            fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
-
             for pccmsc in pccms_contours:
                 pccmsc_centroid = Parser.get_contour_centroid(pccmsc)
-                cv2.floodFill(filled_path_center, fill_mask, (int(pccmsc_centroid[0]), int(pccmsc_centroid[1])), 255)
+                cv2.floodFill(filled_path_center, fill_mask, pccmsc_centroid, 255)
             
             filled_path_center_contours, _ = Parser.find_contours(filled_path_center)
 
@@ -141,8 +138,29 @@ class Parser:
             self.paths.append(Path(i, PathTypes(path_type_num)))
 
             cv2.putText(self.paths_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,127,255), 2)
+
+            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, int(max_pcasdt*2))
+            pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
+            pcmdac_contours, _ = Parser.find_contours(pcmd_and_circles)
+
+            filled_circles_grad = circles_grad.copy()
+
+            for pcmdacc in pcmdac_contours:
+                pcmdacc_centroid = Parser.get_contour_centroid(pcmdacc)
+                cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
+
+            just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
+
+            jfc_contours, _ = Parser.find_contours(just_filled_circles)
+
+            for jfcc in jfc_contours:
+                jfcc_mec = cv2.minEnclosingCircle(jfcc)
+                
+                circle_query = circles_kdtree.query([jfcc_mec[0][0], jfcc_mec[0][1], jfcc_mec[1]])
+
+                self.paths[i].connect_circle(self.circles[circle_query[1]])
         
-        print(self.confirmed_circles)
+        print(self.paths)
         Parser.display(self.paths_debug)
 
     @staticmethod
