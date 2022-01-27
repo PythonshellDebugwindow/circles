@@ -31,6 +31,13 @@ class Circle:
         self.paths.append(path)
 
 class Path:
+    PRIORITIES = {
+        PathTypes.NORMAL: 0,
+        PathTypes.PRIORITY: 1,
+        PathTypes.CONDITIONAL_PRIORITY: 2,
+        PathTypes.INPUT: 0
+    }
+
     def __init__(self, index, type:PathTypes):
         self.index = index
         self.type = type
@@ -44,6 +51,8 @@ class Path:
         circle.connect_path(self)
 
 class Program:
-    def __init__(self, circles):
+    def __init__(self, image, circles:List[Circle], paths:List[Path]):
+        self.image = image
         self.circles = circles
+        self.paths = paths
         

@@ -1,16 +1,12 @@
-import os
-from pathlib import Path as FilePath
-from textwrap import fill
 import cv2
-from cv2 import cvtColor
 import numpy as np
 from scipy.spatial import KDTree
-from collections import defaultdict
 
-from program import CircleTypes, PathTypes, Circle, Path
+from program import CircleTypes, PathTypes, Circle, Path, Program
 class Parser:
     def __init__(self, image) -> None:
         self.image = image
+        self.program = None
 
     @staticmethod
     def display(img):
@@ -94,7 +90,7 @@ class Parser:
         fill_mask = self.stroke.copy()
         fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
 
-        self.id_debug = cvtColor(self.stroke//4, cv2.COLOR_GRAY2BGR)
+        self.id_debug = cv2.cvtColor(self.stroke//4, cv2.COLOR_GRAY2BGR)
 
         self.paths = []
 
@@ -199,8 +195,9 @@ class Parser:
 
             cv2.putText(self.id_debug, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (255,127,0), 2)
 
-        print(self.paths)
         Parser.display(self.id_debug)
+
+        self.program = Program(self.image, self.circles, self.paths)
 
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
