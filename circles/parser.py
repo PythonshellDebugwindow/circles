@@ -9,11 +9,8 @@ from collections import defaultdict
 
 from program import CircleTypes, PathTypes, Circle, Path
 class Parser:
-    def __init__(self, program = 5):
-        self.MAX_PROGRAM = 7
-        self.MIN_PROGRAM = 1
-        self.program = program
-        self.FONT_SCALE = 0.6
+    def __init__(self, image) -> None:
+        self.image = image
 
     @staticmethod
     def display(img):
@@ -28,16 +25,16 @@ class Parser:
     def distance_transform(img, dist_type=cv2.DIST_L2, mask_size=0):
         return cv2.distanceTransform(img, dist_type, mask_size)
 
-    def run(self):
-        self.image = cv2.imread(Parser.get_program(self.program))
+    def parse(self):
+        FONT_SCALE = 0.7
+
+        # Initialization
         self.gray = cv2.cvtColor(self.image, cv2.COLOR_RGB2GRAY)
         self.gray_invert = cv2.bitwise_not(self.gray)
 
         _, self.stroke = cv2.threshold(self.gray_invert, 254, 255, cv2.THRESH_BINARY)
 
         _, self.fill = cv2.threshold(self.gray, 254, 255, cv2.THRESH_BINARY)
-
-        dist = Parser.distance_transform(cv2.bitwise_not(self.fill))
 
         self.fill_contours, _ = Parser.find_contours(self.fill)
 
@@ -47,6 +44,7 @@ class Parser:
 
         self.foreground_dist_trans = Parser.distance_transform(self.foreground)
 
+        # Find circles
         self.foreground_dist_trans_norm = self.foreground_dist_trans/np.max(self.foreground_dist_trans)
         ret,self.foreground_dist_trans_norm_thresh = cv2.threshold(self.foreground_dist_trans_norm,0.5,1,cv2.THRESH_BINARY)
 
@@ -86,6 +84,7 @@ class Parser:
 
         self.circles = [Circle(i, (int(c[0]), int(c[1])), int(c[2])) for i, c in enumerate(self.confirmed_circles)]
 
+        # Find and identify paths
         self.paths_mask = Parser.morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
 
         path_contours, _ = Parser.find_contours(self.paths_mask)
@@ -139,7 +138,7 @@ class Parser:
 
             self.paths.append(Path(i, PathTypes(path_type_num)))
 
-            cv2.putText(self.id_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, self.FONT_SCALE, (0,127,255), 2)
+            cv2.putText(self.id_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0,127,255), 2)
 
             pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, int(max_pcasdt*2))
             pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
@@ -164,6 +163,7 @@ class Parser:
         
         max_stroke_width = int(np.max(stroke_widths))
 
+        # Identify circles
         for circle in self.circles:
             circle_mask = np.zeros_like(self.gray)
             cv2.circle(circle_mask, circle.center, circle.radius, 255, -1)
@@ -197,7 +197,7 @@ class Parser:
             else:
                 circle.type = CircleTypes.UNDEFINED
 
-            cv2.putText(self.id_debug, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, self.FONT_SCALE, (255,127,0), 2)
+            cv2.putText(self.id_debug, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (255,127,0), 2)
 
         print(self.paths)
         Parser.display(self.id_debug)
@@ -205,10 +205,6 @@ class Parser:
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
         return cv2.findContours(img, retr, approx)
-
-    @staticmethod
-    def get_program(number:int):
-        return f"images\program-{number}.png"
 
     @staticmethod
     def get_hough_circles(img, debug=None, min_dist=50, max_radius = None, param1=100, param2=50):
@@ -236,22 +232,6 @@ class Parser:
         return circles
 
     @staticmethod
-    def get_lines(img, debug):
-        edges = cv2.Canny(img,50,150,apertureSize = 3)
-        lines = cv2.HoughLines(edges,1,np.pi/180,180)
-        for line in lines:
-            rho,theta = line[0]
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a*rho
-            y0 = b*rho
-            x1 = int(x0 + 1000*(-b))
-            y1 = int(y0 + 1000*(a))
-            x2 = int(x0 - 1000*(-b))
-            y2 = int(y0 - 1000*(a))
-            cv2.line(debug,(x1,y1),(x2,y2),(0,0,255),2)
-
-    @staticmethod
     def morph(img, kernel_size=2, morph=cv2.MORPH_BLACKHAT):
         kernel = np.ones((kernel_size,kernel_size),np.uint8)
         return cv2.morphologyEx(img, morph, kernel)
@@ -274,6 +254,21 @@ class Parser:
             return (0,0)
         return (int(M['m10']/M['m00']),int(M['m01']/M['m00']))
 
+class DebugParser(Parser):
+    def __init__(self, program = 5):
+        self.MAX_PROGRAM = 7
+        self.MIN_PROGRAM = 1
+        self.program_number = program
+        FONT_SCALE = 0.6
+
+    @staticmethod
+    def get_program(number:int):
+        return f"images\program-{number}.png"
+
+    def run(self):
+        super().__init__(cv2.imread(self.get_program(self.program_number)))
+        super().parse()
+
     def loop(self):
         index=0
         mode=0
@@ -295,10 +290,10 @@ class Parser:
                     
                 elif chr(key) in '[]':
                     if chr(key)=='[':
-                        self.program-=1
+                        self.program_number-=1
                     elif chr(key)==']':
-                        self.program+=1
-                    self.program=np.clip(self.program, self.MIN_PROGRAM,self.MAX_PROGRAM)
+                        self.program_number+=1
+                    self.program_number=np.clip(self.program_number, self.MIN_PROGRAM,self.MAX_PROGRAM)
                     self.run()
 
                 elif chr(key) in "-=":
@@ -313,7 +308,6 @@ class Parser:
 
                 if mode==0:
                     fill_contour_mask = Parser.mask_contours([self.fill_contours[index]], self.fill)
-
                     
                     Parser.display(fill_contour_mask)
                 elif mode==1:
@@ -332,8 +326,7 @@ class Parser:
             print(f"{key=}")
             print(f"{mode=}")
 
-
-parser = Parser(6)
+parser = DebugParser(6)
 
 parser.run()
 
