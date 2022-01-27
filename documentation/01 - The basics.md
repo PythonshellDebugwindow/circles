@@ -1,3 +1,5 @@
+**->** [**Next**](../02%20-%20Your%20first%20programs.md)
+
 # The basics
 Circles is an esoteric programming language, meaning it's a programming language that was created not in seriousness, but just for fun. Unlike more traditional languages, whose programs are text files, Circles programs are image files. This is because a program in Circles looks like a maze of nested circles, connected by parallel lines which themselves can contain circles. Circles programs can contain black (RGB 0,0,0) and white (RGB 255,255,255), and any other colours ignored; white is the fill color of the circles and paths, and black is the stroke colour of the circles and paths. Black and white must **not** be elsewhere in the program, for if they are, [demons may well fly out of your nose](http://www.catb.org/jargon/html/N/nasal-demons.html).
 
@@ -68,3 +70,5 @@ Conditional priority paths are the same as priority paths, except that if the va
 *An input path.*
 
 Input paths work like normal paths, but the next normal circle encountered by the program will get its value from standard input (an integer value is required). If no normal circles are later encountered by the program, an error is thrown. If an input path is followed by a non-normal circle and then another input path, the second input path will be treated as if it were a normal path.
+
+**->** [**Next**](../02%20-%20Your%20first%20programs.md)
