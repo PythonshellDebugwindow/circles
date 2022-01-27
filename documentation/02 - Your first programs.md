@@ -1,3 +1,5 @@
+**<-** [**Previous**](./001 - The basics.md)
+
 # Your first programs
 
 ## 1 A basic program
@@ -37,3 +39,5 @@ The program shown above is a truth-machine: it halts if you input the number zer
 
 ## 8 Writing your own programs
 I used [Scratch](https://scratch.mit.edu/) to make the programs in this file. The specific project I used was [this one](https://scratch.mit.edu/projects/429742899/); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
+
+**<-** [**Previous**](./001 - The basics.md)
