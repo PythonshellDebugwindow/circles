@@ -13,7 +13,7 @@ class CircleTypes(Enum):
 class PathTypes(Enum):
     NORMAL = 0
     PRIORITY = 1
-    CONDITIONAL_PRIORITY = 3
+    CONDITIONAL_PRIORITY = 4
     INPUT = 2
 
 class Circle:

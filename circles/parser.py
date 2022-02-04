@@ -3,6 +3,7 @@ import numpy as np
 from scipy.spatial import KDTree
 
 from program import CircleTypes, PathTypes, Circle, Path, Program
+from interpreter import Interpreter
 class Parser:
     def __init__(self, image) -> None:
         self.image = image
@@ -198,6 +199,7 @@ class Parser:
         Parser.display(self.id_debug)
 
         self.program = Program(self.image, self.circles, self.paths)
+        return self.program
 
     @staticmethod
     def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
@@ -264,7 +266,10 @@ class DebugParser(Parser):
 
     def run(self):
         super().__init__(cv2.imread(self.get_program(self.program_number)))
-        super().parse()
+        program = super().parse()
+        interpreter = Interpreter(program)
+        interpreter.step()
+        interpreter.step()
 
     def loop(self):
         index=0
@@ -327,4 +332,4 @@ parser = DebugParser(6)
 
 parser.run()
 
-parser.loop()
+# parser.loop()

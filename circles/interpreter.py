@@ -56,6 +56,8 @@ class Interpreter:
             self.start()
         else:
             self.do_current_circle()
+            self.go_next()
+        self.step_number+=1
 
     def terminate(self, reason:str):
         print(f"Program terminated because {reason}")
@@ -83,5 +85,6 @@ class Interpreter:
     
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
+        print(next_paths)
 
 
