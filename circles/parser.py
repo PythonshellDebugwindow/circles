@@ -264,10 +264,12 @@ class DebugParser(Parser):
     def get_program(number:int):
         return f"images\program-{number}.png"
 
-    def run(self):
+    def parse(self):
         super().__init__(cv2.imread(self.get_program(self.program_number)))
-        program = super().parse()
-        interpreter = Interpreter(program)
+        return super().parse()
+
+    def interpret(self):
+        interpreter = Interpreter(self.parse())
         interpreter.step()
         interpreter.step()
 
@@ -330,6 +332,6 @@ class DebugParser(Parser):
 
 parser = DebugParser(6)
 
-parser.run()
+parser.parse()
 
-# parser.loop()
+parser.loop()

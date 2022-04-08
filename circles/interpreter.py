@@ -1,13 +1,12 @@
+from collections import defaultdict
 from enum import Enum, auto
-from program import Program, CircleTypes
-from exceptions import *
 
+from program import Program, CircleTypes, Path
+from exceptions import *
 
 class CrementModes(Enum):
     CREMENTING = auto()
     NOT_CREMENTING = auto()
-
-
 
 class Interpreter:
     def __init__(self, program:Program) -> None:
@@ -85,6 +84,12 @@ class Interpreter:
     
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
+        max_priority = max(Path.PRIORITIES.values())
+        
+        next_path_priorities = defaultdict(list)
+
+        for p in next_paths:
+            pass
         print(next_paths)
 
 
