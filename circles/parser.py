@@ -268,11 +268,6 @@ class DebugParser(Parser):
         super().__init__(cv2.imread(self.get_program(self.program_number)))
         return super().parse()
 
-    def interpret(self):
-        interpreter = Interpreter(self.parse())
-        interpreter.step()
-        interpreter.step()
-
     def loop(self):
         index=0
         mode=0
