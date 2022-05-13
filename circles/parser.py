@@ -2,8 +2,9 @@ import cv2
 import numpy as np
 from scipy.spatial import KDTree
 
-from program import CircleTypes, PathTypes, Circle, Path, Program
-from interpreter import Interpreter
+from circles.program import CircleTypes, PathTypes, Circle, Path, Program
+
+
 class Parser:
     def __init__(self, image) -> None:
         self.image = image
@@ -23,6 +24,7 @@ class Parser:
         return cv2.distanceTransform(img, dist_type, mask_size)
 
     def parse(self):
+        # TODO: Make this function not smell
         FONT_SCALE = 0.7
 
         # Initialization
@@ -196,8 +198,6 @@ class Parser:
 
             cv2.putText(self.id_debug, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (255,127,0), 2)
 
-        Parser.display(self.id_debug)
-
         self.program = Program(self.image, self.circles, self.paths)
         return self.program
 
@@ -293,7 +293,6 @@ class DebugParser(Parser):
                     elif chr(key)==']':
                         self.program_number+=1
                     self.program_number=np.clip(self.program_number, self.MIN_PROGRAM,self.MAX_PROGRAM)
-                    self.run()
 
                 elif chr(key) in "-=":
                     if chr(key)=="-":
@@ -324,9 +323,3 @@ class DebugParser(Parser):
             print(f"{index=}")
             print(f"{key=}")
             print(f"{mode=}")
-
-parser = DebugParser(6)
-
-parser.parse()
-
-parser.loop()
