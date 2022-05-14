@@ -253,7 +253,7 @@ class Parser:
             return (0,0)
         return (int(M['m10']/M['m00']),int(M['m01']/M['m00']))
 
-class DebugParser(Parser):
+class DebugProgramParser(Parser):
     def __init__(self, program = 5):
         self.MAX_PROGRAM = 7
         self.MIN_PROGRAM = 1
@@ -321,5 +321,60 @@ class DebugParser(Parser):
                     Parser.display(self.circles_mask)
                     print(self.confirmed_circles)
             print(f"{index=}")
+            print(f"{key=}")
+            print(f"{mode=}")
+
+class DebugParser(Parser):
+    def __init__(self, program_path):
+        self.program_path = program_path
+
+    def parse(self):
+        super().__init__(cv2.imread(self.get_program(self.program_path)))
+        return super().parse()
+
+    def loop(self):
+        mode=0
+        MAX_MODE=4
+        while True:
+            print("=======")
+            key=cv2.waitKey(0)
+
+            if key==-1 or chr(key)=="q":
+                exit()
+            
+            else:
+                if chr(key) in ',.':
+                    if chr(key)=='.':
+                        index+=1
+                    elif chr(key)==',':
+                        index-=1
+                    index %= len(self.fill_contours)
+                    
+                elif chr(key) in "-=":
+                    if chr(key)=="-":
+                        mode-=1
+                    elif chr(key)=="=":
+                        mode+=1
+                    mode%=MAX_MODE
+
+                else:
+                    continue
+
+                if mode==0:
+                    fill_contour_mask = Parser.mask_contours([self.fill_contours[index]], self.fill)
+                    
+                    Parser.display(fill_contour_mask)
+                elif mode==1:
+                    dst = cv2.cornerHarris(self.gray,2,3,0.04)
+                    dst = cv2.dilate(dst,None)
+                    disp = self.image.copy()
+                    disp[dst>0.01*dst.max()]=[0,0,255]
+
+                    Parser.display(disp)
+                elif mode==2:
+                    Parser.display(self.id_debug)
+                elif mode==3:
+                    Parser.display(self.circles_mask)
+                    print(self.confirmed_circles)
             print(f"{key=}")
             print(f"{mode=}")
