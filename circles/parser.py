@@ -135,9 +135,6 @@ class Parser:
 
             path_type_num = (all_path_contours_count - 2)*(int(path_center_contours_count!=all_path_contours_count))
 
-
-            self.display_and_wait(filled_path_center)
-
             self.paths.append(Path(i, PathTypes(path_type_num)))
 
             cv2.putText(self.id_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0,127,255), 2)
