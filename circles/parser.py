@@ -11,12 +11,12 @@ class Parser:
         self.program = None
 
     @staticmethod
-    def display(img):
-        cv2.imshow("display", img)
+    def display(img, winname="display"):
+        cv2.imshow(winname, img)
 
     @staticmethod
-    def display_and_wait(img):
-        Parser.display(img)
+    def display_and_wait(img, winname="display"):
+        Parser.display(img, winname)
         cv2.waitKey(0)
 
     @staticmethod
@@ -31,9 +31,9 @@ class Parser:
         self.gray = cv2.cvtColor(self.image, cv2.COLOR_RGB2GRAY)
         self.gray_invert = cv2.bitwise_not(self.gray)
 
-        _, self.stroke = cv2.threshold(self.gray_invert, 254, 255, cv2.THRESH_BINARY)
+        _, self.stroke = cv2.threshold(self.gray_invert, 150, 255, cv2.THRESH_BINARY)
 
-        _, self.fill = cv2.threshold(self.gray, 254, 255, cv2.THRESH_BINARY)
+        _, self.fill = cv2.threshold(self.gray, 150, 255, cv2.THRESH_BINARY)
 
         self.fill_contours, _ = Parser.find_contours(self.fill)
 
@@ -134,6 +134,9 @@ class Parser:
             path_center_contours_count = len(filled_path_center_contours)
 
             path_type_num = (all_path_contours_count - 2)*(int(path_center_contours_count!=all_path_contours_count))
+
+
+            self.display_and_wait(filled_path_center)
 
             self.paths.append(Path(i, PathTypes(path_type_num)))
 

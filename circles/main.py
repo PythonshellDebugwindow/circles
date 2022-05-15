@@ -18,11 +18,12 @@ def main():
     parser.parse()
     parsed_program = parser.program
 
-    print(parsed_program.circles)
+    if parsed_program is not None:
+        print(parsed_program.circles)
 
-    if args.vision:
-        parser.display_and_wait(parser.id_debug)
-    elif args.debug:
-        debug_parser = DebugParser(args.path)
-        debug_parser.parse()
-        debug_parser.loop()
+        if args.vision:
+            parser.display_and_wait(parser.id_debug)
+        elif args.debug:
+            debug_parser = DebugParser(args.path)
+            debug_parser.parse()
+            debug_parser.loop()
