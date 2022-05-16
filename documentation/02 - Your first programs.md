@@ -40,4 +40,6 @@ The program shown above is a truth-machine: it halts if you input the number zer
 ## 8 Writing your own programs
 I used [Scratch](https://scratch.mit.edu/) to make the programs in this file. The specific project I used was [this one](https://scratch.mit.edu/projects/429742899/); hit `See inside` and drag the sprites around to create programs, and take a partial screenshot of the canvas to save it.
 
+> Hi, Cally here. You can also use [the editor I made with Godot](https://github.com/photon-niko/circles-editor) that is easier to use and just looks nicer :3
+
 **<-** [**Previous**](./01%20-%20The%20basics.md)
