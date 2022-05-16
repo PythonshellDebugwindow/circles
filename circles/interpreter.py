@@ -1,8 +1,8 @@
 from collections import defaultdict
 from enum import Enum, auto
 
-from program import Program, CircleTypes, Path
-from exceptions import *
+from circles.program import Program, CircleTypes, Path
+from circles.exceptions import *
 
 class CrementModes(Enum):
     CREMENTING = auto()
@@ -58,14 +58,14 @@ class Interpreter:
             self.go_next()
         self.step_number+=1
 
-    def terminate(self, reason:str):
-        print(f"Program terminated because {reason}")
+    def halt(self, reason:str):
+        print(f"Program halted because {reason}")
         self.terminated = True
 
     def do_current_circle(self):
         if self.current.type == CircleTypes.START:
             if self.step_number != 0:
-                self.terminate("start circle reeentered")
+                self.halt("start circle reeentered")
         elif self.current.type == CircleTypes.NORMAL:
             self.last_normal_circle = self.current
             
@@ -84,12 +84,26 @@ class Interpreter:
     
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
-        max_priority = max(Path.PRIORITIES.values())
-        
+
         next_path_priorities = defaultdict(list)
 
-        for p in next_paths:
-            pass
+        for next_path in next_paths:
+            next_path_priority = next_path.get_priority()
+            next_path_priorities[next_path_priority].append(next_path)
+
+        max_of_next_path_priority = max(next_path_priorities.keys())
+
+        possible_next_paths = next_path_priorities[max_of_next_path_priority]
+
+        possible_next_paths_len = len(possible_next_paths)
+
+        if possible_next_paths_len > 1:
+            raise AmbiguousPathsException("Too many possible paths", possible_next_paths)
+        elif possible_next_paths_len < 1:
+            self.halt("no possible paths without going back")
+
+        print(f"{next_path_priorities=}")
+        print(f"{possible_next_paths=}")
         print(next_paths)
 
 

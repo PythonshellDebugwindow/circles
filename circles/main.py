@@ -3,7 +3,7 @@ import cv2
 from pathlib import Path
 
 from circles.parser import Parser, DebugParser
-
+from circles.interpreter import Interpreter
 
 def main():
     argparser = argparse.ArgumentParser()
@@ -27,3 +27,7 @@ def main():
             debug_parser = DebugParser(args.path)
             debug_parser.parse()
             debug_parser.loop()
+
+        interpreter = Interpreter(parsed_program)
+        interpreter.step()
+        interpreter.step()

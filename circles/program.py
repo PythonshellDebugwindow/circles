@@ -63,6 +63,9 @@ class Path:
             if c.index != circle.index:
                 return c
 
+    def get_priority(self):
+        return Path.PRIORITIES[self.type]
+
 class Program:
     def __init__(self, image, circles:List[Circle], paths:List[Path]):
         self.image = image
