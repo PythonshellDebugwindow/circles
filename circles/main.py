@@ -23,11 +23,11 @@ def main():
         print(parsed_program.circles)
 
         if args.vision:
-            display_and_wait(parser.id_debug)
+            display_and_wait(parsed_program.get_labeled_image())
         elif args.debug:
             debug_parser = DebugParser(args.path)
             debug_parser.parse()
             debug_parser.loop()
 
-        interpreter = Interpreter(parsed_program, True)
+        interpreter = Interpreter(parsed_program, args.vision)
         interpreter.run()

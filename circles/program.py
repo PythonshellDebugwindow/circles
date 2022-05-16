@@ -1,6 +1,9 @@
 from __future__ import annotations
 from enum import Enum, auto
 from typing import List
+import cv2
+import numpy as np
+
 
 class CircleTypes(Enum):
     UNDEFINED = auto()
@@ -71,4 +74,15 @@ class Program:
         self.image = image
         self.circles = circles
         self.paths = paths
+
+    def get_labeled_image(self, font_scale=0.7):
+        labeled = cv2.bitwise_not(self.image)//4
+
+        for path in self.paths:
+            path_center = np.average(np.array([c.center for c in path.circles]), axis=0)
+            cv2.putText(labeled, path.type.name, (int(path_center[0]), int(path_center[1])), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,127,255), 2)
+
+        for circle in self.circles:
+            cv2.putText(labeled, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255,127,0), 2)
+        return labeled
         
