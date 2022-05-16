@@ -76,18 +76,22 @@ class Interpreter:
         labeled_image = self.program.get_labeled_image()
 
         self.current.draw(labeled_image, (0,255,0))
+
+        for path in self.current.paths_that_dont_connect_to(self.previous):
+            path.draw(labeled_image)
+
         display_and_wait(labeled_image, "where things are")
 
-    def halt(self, reason:str):
+    def halt(self, reason:str, SpecificException=HaltException):
         self.halt_reason = f"Program halted because {reason}"
         print(self.halt_reason)
         self.halted = True
-        raise HaltException(self.halt_reason, self.program, [self.current])
+        raise SpecificException(self.halt_reason, self.program, [self.current])
 
     def do_current_circle(self):
         if self.current.type == CircleTypes.START:
             if self.step_number != 0:
-                self.halt("start circle reeentered")
+                self.halt("start circle reentered", StartReenteredException)
         elif self.current.type == CircleTypes.NORMAL:
             self.last_normal_circle = self.current
             
@@ -110,7 +114,7 @@ class Interpreter:
         next_paths_len = len(next_paths)
 
         if next_paths_len < 1:
-            self.halt("there are no possible paths without going back")
+            self.halt("there are no possible paths without going back", DeadEndException)
 
         next_path_priorities = defaultdict(list[Path])
 
@@ -125,7 +129,7 @@ class Interpreter:
         possible_next_paths_len = len(possible_next_paths)
 
         if possible_next_paths_len > 1:
-            raise AmbiguousPathsException("Too many possible paths", self.program, possible_next_paths)
+            raise AmbiguousPathsException("Too many possible paths", self.program, [self.current], possible_next_paths)
         
         next_circle = possible_next_paths[0].connected_circle_that_is_not(self.current)
         self.previous = self.current

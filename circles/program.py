@@ -74,6 +74,10 @@ class Path:
     def get_priority(self):
         return Path.PRIORITIES[self.type]
 
+    def draw(self, image, color=(0, 255, 0), thickness=2):
+        for i in range(len(self.circles)-1):
+            cv2.line(image, self.circles[i].center, self.circles[i+1].center, color, thickness)
+
 class Program:
     def __init__(self, image, circles:List[Circle], paths:List[Path]):
         self.image = image

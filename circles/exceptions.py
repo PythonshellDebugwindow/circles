@@ -9,6 +9,7 @@ class CirclesException(Exception):
         self.message = message
         self.program = program
         super().__init__(self.message)
+        self.show_exception()
 
     def show_exception(self):
         exception_image = self.draw_exception()
@@ -28,7 +29,6 @@ class CircleException(CirclesException):
         self.program = program
         self.circles = circles
         super().__init__(self.message, self.program)
-        self.show_exception()
 
     def draw_exception(self):
         exception_image = self.program.get_labeled_image()
@@ -47,12 +47,26 @@ class UndefinedCircleException(CircleException):
 class HaltException(CircleException):
     pass
 
+class DeadEndException(HaltException):
+    pass
+
+class StartReenteredException(HaltException):
+    pass
+
 class PathException(CirclesException):
     def __init__(self, message, program:Program, paths:List[Path]):
         self.message = message
         self.program = program
         self.paths = paths
         super().__init__(self.message, self.program)
+
+    def draw_exception(self):
+        exception_image = self.program.get_labeled_image()
+
+        for path in self.paths:
+            path.draw(exception_image, color=(0, 0, 255))
+
+        return exception_image
 
 class CircleAndPathException(CirclesException):
     def __init__(self, message, program:Program, circles:List[Circle], paths:List[Path]):
@@ -61,7 +75,17 @@ class CircleAndPathException(CirclesException):
         self.circles = circles
         self.paths = paths
         super().__init__(self.message, self.program)
-        
+
+    def draw_exception(self):
+        exception_image = self.program.get_labeled_image()
+
+        for circle in self.circles:
+            circle.draw(exception_image, color=(0, 0, 255))
+
+        for path in self.paths:
+            path.draw(exception_image, color=(0, 0, 255))
+
+        return exception_image
 
 class AmbiguousPathsException(CircleAndPathException):
     pass
