@@ -4,6 +4,7 @@ from pathlib import Path
 
 from circles.parser import Parser, DebugParser
 from circles.interpreter import Interpreter
+from circles.cv_helper import display_and_wait
 
 def main():
     argparser = argparse.ArgumentParser()
@@ -22,12 +23,11 @@ def main():
         print(parsed_program.circles)
 
         if args.vision:
-            parser.display_and_wait(parser.id_debug)
+            display_and_wait(parser.id_debug)
         elif args.debug:
             debug_parser = DebugParser(args.path)
             debug_parser.parse()
             debug_parser.loop()
 
-        interpreter = Interpreter(parsed_program)
-        interpreter.step()
-        interpreter.step()
+        interpreter = Interpreter(parsed_program, True)
+        interpreter.run()

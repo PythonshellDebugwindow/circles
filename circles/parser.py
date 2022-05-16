@@ -3,25 +3,12 @@ import numpy as np
 from scipy.spatial import KDTree
 
 from circles.program import CircleTypes, PathTypes, Circle, Path, Program
-
+from circles.cv_helper import *
 
 class Parser:
     def __init__(self, image) -> None:
         self.image = image
         self.program = None
-
-    @staticmethod
-    def display(img, winname="display"):
-        cv2.imshow(winname, img)
-
-    @staticmethod
-    def display_and_wait(img, winname="display"):
-        Parser.display(img, winname)
-        cv2.waitKey(0)
-
-    @staticmethod
-    def distance_transform(img, dist_type=cv2.DIST_L2, mask_size=0):
-        return cv2.distanceTransform(img, dist_type, mask_size)
 
     def parse(self):
         # TODO: Make this function not smell
@@ -35,23 +22,23 @@ class Parser:
 
         _, self.fill = cv2.threshold(self.gray, 150, 255, cv2.THRESH_BINARY)
 
-        self.fill_contours, _ = Parser.find_contours(self.fill)
+        self.fill_contours, _ = find_contours(self.fill)
 
         fill_or_stroke = cv2.bitwise_or(self.fill, self.stroke)
 
-        self.foreground = Parser.morph(fill_or_stroke, 3, cv2.MORPH_CLOSE) 
+        self.foreground = morph(fill_or_stroke, 3, cv2.MORPH_CLOSE) 
 
-        self.foreground_dist_trans = Parser.distance_transform(self.foreground)
+        self.foreground_dist_trans = distance_transform(self.foreground)
 
         # Find circles
         self.foreground_dist_trans_norm = self.foreground_dist_trans/np.max(self.foreground_dist_trans)
         ret,self.foreground_dist_trans_norm_thresh = cv2.threshold(self.foreground_dist_trans_norm,0.5,1,cv2.THRESH_BINARY)
 
-        potential_circle_contours, _ = Parser.find_contours(np.array(self.foreground_dist_trans_norm_thresh, dtype=self.fill.dtype),)
+        potential_circle_contours, _ = find_contours(np.array(self.foreground_dist_trans_norm_thresh, dtype=self.fill.dtype),)
 
         self.circles_debug = self.image.copy()
 
-        hough_circles = Parser.get_hough_circles(self.stroke)
+        hough_circles = get_hough_circles(self.stroke)
 
         circle_positions=hough_circles[:,:2]
 
@@ -62,7 +49,7 @@ class Parser:
         self.confirmed_circles = []
 
         for i, pcc in enumerate(potential_circle_contours):
-            pcc_mask = Parser.mask_contours([pcc], self.gray)
+            pcc_mask = mask_contours([pcc], self.gray)
             pcc_mask_fdt = self.foreground_dist_trans.copy()
             pcc_mask_fdt[np.where(pcc_mask==0)]=0
             max_pcc_fdt = np.max(pcc_mask_fdt)
@@ -84,11 +71,11 @@ class Parser:
         self.circles = [Circle(i, (int(c[0]), int(c[1])), int(c[2])) for i, c in enumerate(self.confirmed_circles)]
 
         # Find and identify paths
-        self.paths_mask = Parser.morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
+        self.paths_mask = morph(cv2.subtract(self.foreground, self.circles_mask), 6, cv2.MORPH_OPEN)
 
-        path_contours, _ = Parser.find_contours(self.paths_mask)
+        path_contours, _ = find_contours(self.paths_mask)
 
-        circles_grad = Parser.morph(self.circles_mask, 2, cv2.MORPH_GRADIENT)
+        circles_grad = morph(self.circles_mask, 2, cv2.MORPH_GRADIENT)
 
         fill_mask = self.stroke.copy()
         fill_mask=np.pad(fill_mask, (1,1), 'constant', constant_values=255)
@@ -100,17 +87,17 @@ class Parser:
         stroke_widths = []
 
         for i, pc in enumerate(path_contours):
-            pc_mask = Parser.mask_contours([pc], self.gray)
+            pc_mask = mask_contours([pc], self.gray)
             pc_and_fill = cv2.bitwise_and(self.fill, pc_mask)
             pc_and_stroke = cv2.bitwise_and(self.stroke, pc_mask)
 
-            pcas_distance_transform = Parser.distance_transform(pc_and_stroke)
+            pcas_distance_transform = distance_transform(pc_and_stroke)
             max_pcasdt = np.max(pcas_distance_transform)
 
             stroke_widths.append(max_pcasdt)
    
-            pcaf_contours, _ = Parser.find_contours(pc_and_fill)
-            pcafc_centroids = [Parser.get_contour_centroid(pcafc) for pcafc in pcaf_contours]
+            pcaf_contours, _ = find_contours(pc_and_fill)
+            pcafc_centroids = [get_contour_centroid(pcafc) for pcafc in pcaf_contours]
             pcafcc_avg = np.average(pcafc_centroids, axis=0)
 
             debuggery = self.image.copy()
@@ -120,15 +107,15 @@ class Parser:
             cv2.circle(path_center_circ, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), int(max_pcasdt*2), 255, -1)
 
             path_center_circ_minus_stroke = cv2.subtract(path_center_circ, self.stroke)
-            pccms_contours, _ = Parser.find_contours(path_center_circ_minus_stroke)
+            pccms_contours, _ = find_contours(path_center_circ_minus_stroke)
 
             filled_path_center = np.zeros_like(self.gray)
 
             for pccmsc in pccms_contours:
-                pccmsc_centroid = Parser.get_contour_centroid(pccmsc)
+                pccmsc_centroid = get_contour_centroid(pccmsc)
                 cv2.floodFill(filled_path_center, fill_mask, pccmsc_centroid, 255)
             
-            filled_path_center_contours, _ = Parser.find_contours(filled_path_center)
+            filled_path_center_contours, _ = find_contours(filled_path_center)
 
             all_path_contours_count = len(pcaf_contours)
             path_center_contours_count = len(filled_path_center_contours)
@@ -139,19 +126,19 @@ class Parser:
 
             cv2.putText(self.id_debug, PathTypes(path_type_num).name, (int(pcafcc_avg[0]), int(pcafcc_avg[1])), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0,127,255), 2)
 
-            pc_mask_dilate = Parser.morph_func(pc_mask, cv2.dilate, int(max_pcasdt*2))
+            pc_mask_dilate = morph_func(pc_mask, cv2.dilate, int(max_pcasdt*2))
             pcmd_and_circles = cv2.bitwise_and(pc_mask_dilate, self.circles_mask)
-            pcmdac_contours, _ = Parser.find_contours(pcmd_and_circles)
+            pcmdac_contours, _ = find_contours(pcmd_and_circles)
 
             filled_circles_grad = circles_grad.copy()
 
             for pcmdacc in pcmdac_contours:
-                pcmdacc_centroid = Parser.get_contour_centroid(pcmdacc)
+                pcmdacc_centroid = get_contour_centroid(pcmdacc)
                 cv2.floodFill(filled_circles_grad, None, pcmdacc_centroid, 255)
 
             just_filled_circles = cv2.subtract(filled_circles_grad,circles_grad)
 
-            jfc_contours, _ = Parser.find_contours(just_filled_circles)
+            jfc_contours, _ = find_contours(just_filled_circles)
 
             for jfcc in jfc_contours:
                 jfcc_mec = cv2.minEnclosingCircle(jfcc)
@@ -171,10 +158,10 @@ class Parser:
             circle_center = np.zeros_like(self.gray)
             cv2.circle(circle_center, circle.center, max_stroke_width*4, 255, -1)
             circle_fill_and_center = cv2.bitwise_and(circle_fill, circle_center)
-            cfac_contours, _ = Parser.find_contours(circle_fill_and_center)
+            cfac_contours, _ = find_contours(circle_fill_and_center)
             cfac_contours_count = len(cfac_contours)
 
-            cf_contours, _ = Parser.find_contours(circle_fill)
+            cf_contours, _ = find_contours(circle_fill)
             cf_contours_count = len(cf_contours)
 
             paths_count = len(circle.paths)
@@ -201,57 +188,7 @@ class Parser:
         self.program = Program(self.image, self.circles, self.paths)
         return self.program
 
-    @staticmethod
-    def find_contours(img, retr=cv2.RETR_TREE, approx=cv2.CHAIN_APPROX_SIMPLE):
-        return cv2.findContours(img, retr, approx)
-
-    @staticmethod
-    def get_hough_circles(img, debug=None, min_dist=50, max_radius = None, param1=100, param2=50):
-        if max_radius is None:
-            max_radius = np.min(img.shape)
-
-        circles = cv2.HoughCircles(
-            image=img,
-            method=cv2.HOUGH_GRADIENT,
-            dp=1,
-            minDist=min_dist,
-            param1=param1,
-            param2=param2,
-            maxRadius=max_radius,
-        )
-
-        if circles is not None:
-            if debug is not None:
-                for c in circles[0]:
-                    cv2.circle(debug, (int(c[0]), int(c[1])), int(c[2]), (255, 0, 255), 1)
-                    cv2.circle(debug, (int(c[0]), int(c[1])), 2, (0, 255, 0), -1)
-
-            return circles[0]
-
-        return circles
-
-    @staticmethod
-    def morph(img, kernel_size=2, morph=cv2.MORPH_BLACKHAT):
-        kernel = np.ones((kernel_size,kernel_size),np.uint8)
-        return cv2.morphologyEx(img, morph, kernel)
-
-    @staticmethod
-    def morph_func(img, func, kernel_size=2, iterations=1):
-        kernel = np.ones((kernel_size,kernel_size),np.uint8)
-        return func(img, kernel, iterations=iterations)
-
-    @staticmethod
-    def mask_contours(cnts, img, color = 255):
-        mask = np.zeros_like(img)
-        cv2.drawContours(mask, cnts, -1, color, -1, cv2.LINE_AA)
-        return mask
-
-    @staticmethod
-    def get_contour_centroid(cnt):
-        M = cv2.moments(cnt)
-        if M['m00'] ==0:
-            return (0,0)
-        return (int(M['m10']/M['m00']),int(M['m01']/M['m00']))
+    
 
 class DebugProgramParser(Parser):
     def __init__(self, program = 5):
@@ -305,20 +242,20 @@ class DebugProgramParser(Parser):
                     continue
 
                 if mode==0:
-                    fill_contour_mask = Parser.mask_contours([self.fill_contours[index]], self.fill)
+                    fill_contour_mask = mask_contours([self.fill_contours[index]], self.fill)
                     
-                    Parser.display(fill_contour_mask)
+                    display(fill_contour_mask)
                 elif mode==1:
                     dst = cv2.cornerHarris(self.gray,2,3,0.04)
                     dst = cv2.dilate(dst,None)
                     disp = self.image.copy()
                     disp[dst>0.01*dst.max()]=[0,0,255]
 
-                    Parser.display(disp)
+                    display(disp)
                 elif mode==2:
-                    Parser.display(self.id_debug)
+                    display(self.id_debug)
                 elif mode==3:
-                    Parser.display(self.circles_mask)
+                    display(self.circles_mask)
                     print(self.confirmed_circles)
             print(f"{index=}")
             print(f"{key=}")
@@ -361,20 +298,20 @@ class DebugParser(Parser):
                     continue
 
                 if mode==0:
-                    fill_contour_mask = Parser.mask_contours([self.fill_contours[index]], self.fill)
+                    fill_contour_mask = mask_contours([self.fill_contours[index]], self.fill)
                     
-                    Parser.display(fill_contour_mask)
+                    display(fill_contour_mask)
                 elif mode==1:
                     dst = cv2.cornerHarris(self.gray,2,3,0.04)
                     dst = cv2.dilate(dst,None)
                     disp = self.image.copy()
                     disp[dst>0.01*dst.max()]=[0,0,255]
 
-                    Parser.display(disp)
+                    display(disp)
                 elif mode==2:
-                    Parser.display(self.id_debug)
+                    display(self.id_debug)
                 elif mode==3:
-                    Parser.display(self.circles_mask)
+                    display(self.circles_mask)
                     print(self.confirmed_circles)
             print(f"{key=}")
             print(f"{mode=}")

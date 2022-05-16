@@ -1,16 +1,19 @@
 from collections import defaultdict
 from enum import Enum, auto
+import cv2
 
 from circles.program import Program, CircleTypes, Path
 from circles.exceptions import *
+from circles.cv_helper import display_and_wait
 
 class CrementModes(Enum):
     CREMENTING = auto()
     NOT_CREMENTING = auto()
 
 class Interpreter:
-    def __init__(self, program:Program) -> None:
+    def __init__(self, program:Program, do_debug=False) -> None:
         self.program = program
+        self.do_debug = do_debug
 
         self.step_number = -1
 
@@ -42,7 +45,7 @@ class Interpreter:
         self.current = self.get_start_circle()
         self.previous = self.current
 
-    def interpret(self):
+    def run(self):
         self.start()
 
         self.step_number+=1
@@ -51,12 +54,22 @@ class Interpreter:
             self.step()
 
     def step(self):
+        if self.do_debug:
+            self.show_where_things_are()
+
         if self.step_number<0:
             self.start()
         else:
+            self.previous = self.current
             self.do_current_circle()
             self.go_next()
         self.step_number+=1
+
+    def show_where_things_are(self):
+        copy_of_image = self.program.image.copy()
+
+        cv2.circle(copy_of_image, self.current.center, self.current.radius, (0, 0, 255), 2)
+        display_and_wait(copy_of_image, "where things are")
 
     def halt(self, reason:str):
         print(f"Program halted because {reason}")
@@ -85,7 +98,7 @@ class Interpreter:
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
 
-        next_path_priorities = defaultdict(list)
+        next_path_priorities = defaultdict(list[Path])
 
         for next_path in next_paths:
             next_path_priority = next_path.get_priority()
@@ -97,13 +110,15 @@ class Interpreter:
 
         possible_next_paths_len = len(possible_next_paths)
 
+        print(f"{next_path_priorities=}")
+        print(f"{possible_next_paths=}")
+        print(next_paths)
+
         if possible_next_paths_len > 1:
             raise AmbiguousPathsException("Too many possible paths", possible_next_paths)
         elif possible_next_paths_len < 1:
             self.halt("no possible paths without going back")
 
-        print(f"{next_path_priorities=}")
-        print(f"{possible_next_paths=}")
-        print(next_paths)
+        next_circle = possible_next_paths[0].connected_circle_that_is_not(self.current)
 
-
+        self.current = next_circle
