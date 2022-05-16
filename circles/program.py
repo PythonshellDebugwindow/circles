@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 
 
+from circles.cv_helper import put_text
+
 class CircleTypes(Enum):
     UNDEFINED = auto()
     START = auto()
@@ -40,6 +42,9 @@ class Circle:
             if p.connected_circle_that_is_not(self).index != circle.index:
                 paths.append(p)
         return paths
+
+    def draw(self, image, color=(0, 0, 255), thickness=2):
+        cv2.circle(image, self.center, self.radius, color, thickness)
 
 class Path:
     PRIORITIES = {
@@ -80,9 +85,9 @@ class Program:
 
         for path in self.paths:
             path_center = np.average(np.array([c.center for c in path.circles]), axis=0)
-            cv2.putText(labeled, path.type.name, (int(path_center[0]), int(path_center[1])), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,127,255), 2)
-
+            put_text(labeled, path.type.name, (int(path_center[0]), int(path_center[1])), color=(0,127,255))
+            
         for circle in self.circles:
-            cv2.putText(labeled, circle.type.name, circle.center, cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255,127,0), 2)
+            put_text(labeled, circle.type.name, circle.center, color=(255,127,0))
         return labeled
         

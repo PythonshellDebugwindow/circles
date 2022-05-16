@@ -24,20 +24,27 @@ class Interpreter:
         self.last_normal_circle:Circle = None
 
         self.halted = False
+        self.halt_reason = ""
 
         self.crement_mode = CrementModes.NOT_CREMENTING
         self.crement_count = 0
 
     def get_start_circle(self):
         starts:List[Circle] = []
+        undefined_circles:List[Circle] = []
         for circle in self.program.circles:
             if circle.type == CircleTypes.START:
                 starts.append(circle)
+            elif circle.type == CircleTypes.UNDEFINED:
+                undefined_circles.append(circle)
         
+        if len(undefined_circles) > 0:
+            raise UndefinedCircleException("Undefined circles found", self.program, undefined_circles)
+
         if len(starts) == 0:
-            raise StartCircleException("No start circle found", [])
+            raise StartCircleException("No start circle found", self.program, [])
         elif len(starts) > 1:
-            raise StartCircleException("Multiple start circles found", starts)
+            raise StartCircleException("Multiple start circles found", self.program, starts)
         else:
             return starts[0]
 
@@ -68,12 +75,14 @@ class Interpreter:
     def show_where_things_are(self):
         labeled_image = self.program.get_labeled_image()
 
-        cv2.circle(labeled_image, self.current.center, self.current.radius, (0, 0, 255), 2)
+        self.current.draw(labeled_image, (0,255,0))
         display_and_wait(labeled_image, "where things are")
 
     def halt(self, reason:str):
-        print(f"Program halted because {reason}")
+        self.halt_reason = f"Program halted because {reason}"
+        print(self.halt_reason)
         self.halted = True
+        raise HaltException(self.halt_reason, self.program, [self.current])
 
     def do_current_circle(self):
         if self.current.type == CircleTypes.START:
@@ -102,7 +111,6 @@ class Interpreter:
 
         if next_paths_len < 1:
             self.halt("there are no possible paths without going back")
-            return
 
         next_path_priorities = defaultdict(list[Path])
 
@@ -117,7 +125,7 @@ class Interpreter:
         possible_next_paths_len = len(possible_next_paths)
 
         if possible_next_paths_len > 1:
-            raise AmbiguousPathsException("Too many possible paths", possible_next_paths)
+            raise AmbiguousPathsException("Too many possible paths", self.program, possible_next_paths)
         
         next_circle = possible_next_paths[0].connected_circle_that_is_not(self.current)
         self.previous = self.current
