@@ -23,7 +23,7 @@ class Interpreter:
 
         self.last_normal_circle:Circle = None
 
-        self.terminated = False
+        self.halted = False
 
         self.crement_mode = CrementModes.NOT_CREMENTING
         self.crement_count = 0
@@ -50,30 +50,30 @@ class Interpreter:
 
         self.step_number+=1
 
-        while True:
+        while not self.halted:
             self.step()
 
     def step(self):
         if self.do_debug:
             self.show_where_things_are()
 
-        if self.step_number<0:
-            self.start()
-        else:
-            self.previous = self.current
-            self.do_current_circle()
-            self.go_next()
-        self.step_number+=1
+        if not self.halted:
+            if self.step_number<0:
+                self.start()
+            else:
+                self.do_current_circle()
+                self.go_next()
+            self.step_number+=1
 
     def show_where_things_are(self):
-        copy_of_image = self.program.image.copy()
+        labeled_image = self.program.get_labeled_image()
 
-        cv2.circle(copy_of_image, self.current.center, self.current.radius, (0, 0, 255), 2)
-        display_and_wait(copy_of_image, "where things are")
+        cv2.circle(labeled_image, self.current.center, self.current.radius, (0, 0, 255), 2)
+        display_and_wait(labeled_image, "where things are")
 
     def halt(self, reason:str):
         print(f"Program halted because {reason}")
-        self.terminated = True
+        self.halted = True
 
     def do_current_circle(self):
         if self.current.type == CircleTypes.START:
@@ -98,6 +98,12 @@ class Interpreter:
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
 
+        next_paths_len = len(next_paths)
+
+        if next_paths_len < 1:
+            self.halt("there are no possible paths without going back")
+            return
+
         next_path_priorities = defaultdict(list[Path])
 
         for next_path in next_paths:
@@ -110,15 +116,9 @@ class Interpreter:
 
         possible_next_paths_len = len(possible_next_paths)
 
-        print(f"{next_path_priorities=}")
-        print(f"{possible_next_paths=}")
-        print(next_paths)
-
         if possible_next_paths_len > 1:
             raise AmbiguousPathsException("Too many possible paths", possible_next_paths)
-        elif possible_next_paths_len < 1:
-            self.halt("no possible paths without going back")
-
+        
         next_circle = possible_next_paths[0].connected_circle_that_is_not(self.current)
-
+        self.previous = self.current
         self.current = next_circle
