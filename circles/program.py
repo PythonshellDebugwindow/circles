@@ -8,12 +8,12 @@ import numpy as np
 from circles.cv_helper import put_text
 
 class CircleTypes(Enum):
-    UNDEFINED = auto()
-    START = auto()
-    NORMAL = auto()
-    INCREMENT = auto()
-    DECREMENT = auto()
-    OUTPUT = auto()
+    UNDEFINED = "???"
+    START = "START"
+    NORMAL = "NORMAL"
+    INCREMENT = "+"
+    DECREMENT = "-"
+    OUTPUT = "OUTPUT"
 
 class PathTypes(Enum):
     NORMAL = 0
@@ -92,6 +92,6 @@ class Program:
             put_text(labeled, path.type.name, (int(path_center[0]), int(path_center[1])), color=(0,127,255))
             
         for circle in self.circles:
-            put_text(labeled, circle.type.name, circle.center, color=(255,127,0))
+            put_text(labeled, circle.type.value, circle.center, color=(255,127,0))
         return labeled
         

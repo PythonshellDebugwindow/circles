@@ -106,7 +106,12 @@ class Interpreter:
             self.crement_mode = CrementModes.CREMENTING
             self.crement_count -= 1
         elif self.current.type == CircleTypes.OUTPUT:
-            print(self.last_normal_circle.value)
+            if self.last_normal_circle is None:
+                raise NoNormalCircleVisitedException(self.program, self.current)
+            elif self.crement_mode == CrementModes.CREMENTING:
+                raise NoNormalCircleAfterCrementationException(self.program, [self.current, self.previous])
+            else:
+                print(self.last_normal_circle.value)
     
     def go_next(self):
         next_paths = self.current.paths_that_dont_connect_to(self.previous)
