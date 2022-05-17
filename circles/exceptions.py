@@ -38,6 +38,20 @@ class CircleException(CirclesException):
 
         return exception_image
 
+class NoNormalCircleVisitedException(CircleException):
+    def __init__(self, program:Program, circle:Circle):
+        self.message = "No normal circle visited before entering output circle"
+        self.program = program
+        self.circles = [circle]
+        super().__init__(self.message, self.program, [circle])
+
+class NoNormalCircleAfterCrementationException(CircleException):
+    def __init__(self, program:Program, circles:List[Circle]):
+        self.message = "No normal circle after crementation"
+        self.program = program
+        self.circles = circles
+        super().__init__(self.message, self.program, circles)
+
 class StartCircleException(CircleException):
     pass
 
