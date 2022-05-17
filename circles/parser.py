@@ -20,7 +20,11 @@ class Parser:
 
         _, self.stroke = cv2.threshold(self.gray_invert, 150, 255, cv2.THRESH_BINARY)
 
+        self.stroke = morph(self.stroke, 3, cv2.MORPH_CLOSE)
+
         _, self.fill = cv2.threshold(self.gray, 150, 255, cv2.THRESH_BINARY)
+
+        self.fill = morph(self.fill, 3, cv2.MORPH_CLOSE)
 
         self.fill_contours, _ = find_contours(self.fill)
 
@@ -155,6 +159,8 @@ class Parser:
             cv2.circle(circle_mask, circle.center, circle.radius, 255, -1)
 
             circle_fill = cv2.bitwise_and(cv2.bitwise_and(self.fill, circle_mask), self.circles_mask)
+            circle_fill = morph(circle_fill, 3, cv2.MORPH_OPEN)
+            
             circle_center = np.zeros_like(self.gray)
             cv2.circle(circle_center, circle.center, max_stroke_width*4, 255, -1)
             circle_fill_and_center = cv2.bitwise_and(circle_fill, circle_center)
