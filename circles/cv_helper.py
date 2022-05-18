@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 
-def display(img, winname="display"):
+def display(img, winname="Display"):
     cv2.imshow(winname, img)
 
-def display_and_wait(img, winname="display"):
+def display_and_wait(img, winname="Press any key. Press 'q' to quit."):
     display(img, winname)
-    cv2.waitKey(0)
+    key = cv2.waitKey(0)
+    if key == ord('q'):
+        raise KeyboardInterrupt
 
 def distance_transform(img, dist_type=cv2.DIST_L2, mask_size=0):
     return cv2.distanceTransform(img, dist_type, mask_size)
