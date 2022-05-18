@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "circleso"
-version = "0.1.0.dev1"
+version = "0.1.0"
 description = "Implementation of Circles in Python"
 keywords = ["circles", "graphical", "esoteric", "esolang", "programming", "language", "graph", "image"]
 authors = ["Calico Niko"]
