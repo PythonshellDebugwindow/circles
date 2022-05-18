@@ -48,11 +48,7 @@ Output circles are the same as normal circles, except they output the value of t
 <br />
 *A normal path.*
 
-<<<<<<< HEAD
-Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown. Like all paths, normal paths cannot be bent; paths also cannot cross.
-=======
 Normal paths are the most basic types of paths: they are used exclusively to connect circles. Execution consists mainly of traversing these paths, moving from circle to circle. If there are ever two or more possible normal paths that can be taken from a single circle, an error will be thrown. Like all paths, normal paths cannot be bent; paths cannot cross.
->>>>>>> 4a57f0fd1914b85211a65895b49e15a9106d2712
 
 ### 2.2 Priority paths
 ![A priority path.](../images/priority-path.png?raw=true)
