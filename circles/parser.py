@@ -117,9 +117,6 @@ class Parser:
             
             filled_path_center_contours, _ = find_contours(filled_path_center)
 
-            display_and_wait(pc_and_fill)
-            display_and_wait(filled_path_center)
-
             all_path_contours_count = len(pcaf_contours)
             path_center_contours_count = len(filled_path_center_contours)
 
