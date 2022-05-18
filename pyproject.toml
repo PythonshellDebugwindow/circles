@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "circleso"
+version = "0.1.0.dev1"
+description = "Implementation of Circles in Python"
+keywords = ["circles", "graphical", "esoteric", "esolang", "programming", "language", "graph", "image"]
+authors = ["Calico Niko"]
+readme = "README.md"
+repository = "https://github.com/photon-niko/circles/"
+license = "GPL-3.0"
+packages = [
+    {include = "circles"}
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9, <3.11"
+opencv-python = "^4.5.5"
+numpy = "^1.22.3"
+scipy = "^1.8.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
