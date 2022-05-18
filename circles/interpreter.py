@@ -124,7 +124,7 @@ class Interpreter:
         next_path_priorities = defaultdict(list[Path])
 
         for next_path in next_paths:
-            next_path_priority = next_path.get_priority()
+            next_path_priority = next_path.get_priority(self.current)
             next_path_priorities[next_path_priority].append(next_path)
 
         max_of_next_path_priority = max(next_path_priorities.keys())

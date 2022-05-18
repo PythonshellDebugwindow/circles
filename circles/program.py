@@ -71,7 +71,12 @@ class Path:
             if c.index != circle.index:
                 return c
 
-    def get_priority(self):
+    def get_priority(self, current_circle:Circle):
+        if self.type == PathTypes.CONDITIONAL_PRIORITY:
+            if current_circle.value < 1:
+                return 0
+            else:
+                return self.PRIORITIES[self.type]
         return Path.PRIORITIES[self.type]
 
     def draw(self, image, color=(0, 255, 0), thickness=2):
