@@ -2,13 +2,17 @@ from collections import defaultdict
 from enum import Enum, auto
 import cv2
 
-from circles.program import Program, CircleTypes, Path
+from circles.program import PathTypes, Program, CircleTypes, Path
 from circles.exceptions import *
 from circles.cv_helper import display_and_wait
 
 class CrementModes(Enum):
     CREMENTING = auto()
     NOT_CREMENTING = auto()
+
+class InputModes(Enum):
+    WAITING_FOR_INPUT = auto()
+    HOLDING_INPUT = auto()
 
 class Interpreter:
     def __init__(self, program:Program, do_debug=False) -> None:
@@ -28,6 +32,9 @@ class Interpreter:
 
         self.crement_mode = CrementModes.NOT_CREMENTING
         self.crement_count = 0
+
+        self.input_mode = InputModes.WAITING_FOR_INPUT
+        self.input_value:int = None
 
     def get_start_circle(self):
         starts:List[Circle] = []
@@ -94,6 +101,10 @@ class Interpreter:
                 self.halt("start circle reentered", StartReenteredException)
         elif self.current.type == CircleTypes.NORMAL:
             self.last_normal_circle = self.current
+
+            if self.input_mode == InputModes.HOLDING_INPUT:
+                self.current.value = self.input_value
+                self.input_mode = InputModes.WAITING_FOR_INPUT
             
             if self.crement_mode == CrementModes.CREMENTING:
                 self.current.value += self.crement_count
@@ -136,6 +147,17 @@ class Interpreter:
         if possible_next_paths_len > 1:
             raise AmbiguousPathsException("Too many possible paths", self.program, [self.current], possible_next_paths)
         
-        next_circle = possible_next_paths[0].connected_circle_that_is_not(self.current)
+        the_next_path = possible_next_paths[0]
+
+        if the_next_path.type == PathTypes.INPUT and self.input_mode == InputModes.WAITING_FOR_INPUT:
+            self.input_mode = InputModes.HOLDING_INPUT
+            self.input_value = None
+            while self.input_value is None:
+                try:
+                    self.input_value = int(input("Input an integer: "))
+                except ValueError:
+                    print("Invalid input")
+
+        next_circle = the_next_path.connected_circle_that_is_not(self.current)
         self.previous = self.current
         self.current = next_circle
