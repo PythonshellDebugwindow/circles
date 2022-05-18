@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "circleso"
+name = "circ-lang"
 version = "0.1.0"
 description = "Implementation of Circles in Python"
 keywords = ["circles", "graphical", "esoteric", "esolang", "programming", "language", "graph", "image"]
