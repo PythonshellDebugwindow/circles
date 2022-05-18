@@ -20,11 +20,7 @@ class Parser:
 
         _, self.stroke = cv2.threshold(self.gray_invert, 150, 255, cv2.THRESH_BINARY)
 
-        self.stroke = morph(self.stroke, 3, cv2.MORPH_CLOSE)
-
         _, self.fill = cv2.threshold(self.gray, 150, 255, cv2.THRESH_BINARY)
-
-        self.fill = morph(self.fill, 3, cv2.MORPH_CLOSE)
 
         self.fill_contours, _ = find_contours(self.fill)
 
