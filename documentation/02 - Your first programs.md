@@ -33,7 +33,7 @@ The program depicted above implements a while loop. First, the program increment
 The program shown above outputs the number one. It first increments the value of the circle in the exact center of the program, which we'll call C here for ease of reference. The program then take the conditional priority path to the down-right into the output circle, writing C's value, which is currently 1, to standard output. C's value is then decremented, and the priority path is taken to the leftmost normal circle; C's value is now zero, so the conditional priority path is ignored. Since the leftmost normal circle is a dead end, having no other paths leading away from it, the program terminates.
 
 ## 7 A [truth-machine](https://www.esolangs.org/wiki/Truth-machine)
-![A truth-machine](../images/program-7.png?raw=true)
+![A truth-machine](../images/program-7-fix.png?raw=true)
 
 The program shown above is a truth-machine: it halts if you input the number zero, or loops forever if you input the number one; all other input is undefined behaviour and should not be used. The program starts in the start circle, reads an integer from standard input, and stores that integer in the top-central circle, which we'll call C here for the sake of brevity. If C's value is non-zero (e.g., if the user input the number one), then the program will take the conditional priority path to the down-right, then go left, then up-right, and then repeat that loop forever; if C's value is zero (e.g., if the user input the number zero), then the program will go to the right and halt.
 
