@@ -12,7 +12,7 @@ I think this is a nice esolang so I'm gonna implement this.
   ```
 * O
   ```
-  python -m pip install circleso
+  python -m pip install circ-lang
   ```
 * Interpret Circles programs with
   ```
